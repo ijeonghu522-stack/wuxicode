@@ -139,6 +139,14 @@ endif()
 
 option(WX_BUILD_TESTS "Build C++ unit tests (1B)" OFF)
 
+# enable_testing() must be called from the TOP-LEVEL list file. Calling it only
+# inside cpp/ registers the tests in that subdirectory's CTestTestfile, and a
+# `ctest` run from the build root then reports "No tests were found" while the
+# test executables sit right there having passed.
+if(WX_BUILD_TESTS)
+  enable_testing()
+endif()
+
 # ---------------------------------------------------------------------------
 # subdirectories
 # ---------------------------------------------------------------------------

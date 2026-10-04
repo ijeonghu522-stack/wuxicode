@@ -8,6 +8,11 @@
 
 add_library(wxcore STATIC
   core/base/hash.hpp
+  core/cache/git_probe.hpp
+  core/cache/git_probe.cpp
+  core/cache/lru.hpp
+  core/cache/tool_cache.hpp
+  core/cache/tool_cache.cpp
   core/net/sse_parser.hpp
   core/net/sse_parser.cpp
   core/text/tokenizer_heuristic.hpp

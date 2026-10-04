@@ -41,6 +41,15 @@ dependencies = [
     "httpx>=0.27",
 ]
 
+# Test and lint tooling. Kept out of the runtime dependency set on purpose:
+# nothing in wx/ imports pytest or ruff, and the frozen EXE in Phase 6 should
+# not carry them.
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4",
+    "ruff>=0.5",
+]
+
 [project.urls]
 Homepage = "https://wuxicode.dev"
 Support = "mailto:ijeonghu522@gmail.com"

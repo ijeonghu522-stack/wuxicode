@@ -76,18 +76,46 @@ wuxicode --help
 
 ## Status
 
-`0.1.0` — Phase 1A vertical slice. Streaming path and build pipeline.
-Nothing else is wired up yet.
+`0.1.0` — Phase 1A complete, Phase 1B complete.
 
-| Phase | Scope |
-|---|---|
-| 1A | build + SSE stream + token counter + banner |
-| 1B | LRU, ToolCache, GitProbe, `read` tool, tests |
-| 2 | full tool layer, git-aware invalidation, parallel scheduler |
-| 3 | context compaction, budget ledger, AGENTS.md |
-| 4 | FTXUI TUI, diff view, status bar, low-spec 60fps |
-| 5 | auth, signed licenses, W_X ZEN gating |
-| 6 | frozen EXE, website, billing |
+| Phase | Scope | State |
+|---|---|---|
+| 1A | build + SSE stream + token counter + banner | done |
+| 1B | LRU, ToolCache, GitProbe, `read` tool, tests | done |
+| 2 | full tool layer, git-aware invalidation, parallel scheduler | next |
+| 3 | context compaction, budget ledger, AGENTS.md | — |
+| 4 | FTXUI TUI, diff view, status bar, low-spec 60fps | — |
+| 5 | auth, signed licenses, W_X ZEN gating | — |
+| 6 | frozen EXE, website, billing | — |
+
+### What 1B actually does
+
+The cache is keyed on five axes — tool name, schema version, canonical
+arguments, `(HEAD sha, .git/index mtime)`, and the target's `(mtime_ns, size)` —
+and there is no TTL anywhere in it. An unchanged file is never re-read; a file
+edited a millisecond ago is never served stale. Both git axes are required:
+`git add` moves the index without moving HEAD, and `git commit` moves HEAD
+without the index leading the way.
+
+The `read` tool caches raw bytes and keeps its formatting in Python, so changing
+an error message does not retire every entry ever stored. Errors are never
+cached.
+
+### Build and test
+
+```powershell
+pip install -e .                  # builds _wx_core, installs wx in editable mode
+
+# C++ — needs pybind11_DIR on a standalone build, see cpp/CMakeLists.txt
+cmake -S . -B build -DWX_BUILD_TESTS=ON -DCMAKE_BUILD_TYPE=Release -Dpybind11_DIR=<...>
+cmake --build build --config Release
+ctest --test-dir build -C Release --output-on-failure
+
+# Python
+pip install -e ".[dev]"
+pytest
+ruff check .
+```
 
 ## Contact
 
