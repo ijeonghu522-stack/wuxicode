@@ -1,0 +1,83 @@
+# ── Python ──────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# 가상환경 / 패키징
+.venv/
+venv/
+env/
+*.egg-info/
+.eggs/
+dist/
+sdist/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# ── C++ / CMake 빌드 산출물 ──────────────────────────────────────────
+# build/ 안에는 .obj .lib .exp .tlog .vcxproj .cmake API 응답 등이 들어있다.
+# 전부 재생성 가능하므로 커밋하지 않는다.
+build/
+out/
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+CTestTestfile.cmake
+Makefile
+*.obj
+*.o
+*.a
+*.lib
+*.exp
+*.iobj
+*.pyd
+*.tlog/
+*.sln
+*.slnx
+*.vcxproj
+*.vcxproj.filters
+*.aps
+.vs/
+compile_commands.json
+
+# ── 자격 증명 ───────────────────────────────────────────────────────
+# 실제 키는 사용자 홈의 ~/.wuxicode/ 에 있다 (python/wx/auth/provider_store.py).
+# 저장소가 아닌 곳에 있으므로 원리적으로 커밋될 수 없지만, belt-and-braces.
+.wuxicode/
+providers.json
+*.env
+.env
+.env.*
+!.env.example
+config.local.json
+secrets.json
+credentials.json
+
+# ── 로컬 스크래치 ───────────────────────────────────────────────────
+# ⚠ 아래 파일들은 하드코딩된 실제 Groq API 키를 포함하고 있다.
+# 절대 커밋하지 않는다. 키를 회전시키고 파일은 정리할 것.
+test_tool.py
+test_tool_call.py
+test_tool_call2.py
+test_tool_call3.py
+test_tool_call4.py
+test_tool_calls.py
+test_tool_calls3.py
+test_tool_choice.py
+test_tool_choice2.py
+test_tool_final.py
+test_final.py
+test_input.txt
+
+# 에디터 / OS
+.vscode/
+.idea/
+*.swp
+*~
+Thumbs.db
+.DS_Store
+desktop.ini

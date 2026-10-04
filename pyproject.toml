@@ -1,0 +1,120 @@
+# WUXICODE — packaging + build backend
+# Version here MUST stay in sync with version.json. Test T3 enforces it.
+# Do not parse this file from CMake — CMake reads version.json directly.
+
+[build-system]
+requires = [
+    "scikit-build-core>=0.10",
+    "pybind11>=2.12",
+]
+build-backend = "scikit_build_core.build"
+
+[project]
+name = "wuxicode"
+version = "0.1.0"
+description = "Hybrid coding agent that streams while your tools read."
+readme = "README.md"
+requires-python = ">=3.10"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [
+    { name = "ujin", email = "ijeonghu522@gmail.com" },
+]
+keywords = ["agent", "llm", "cli", "tui", "coding-assistant"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: C++",
+    "Topic :: Software Development :: Build Tools",
+]
+
+# 1A dependency set. Deliberately minimal.
+#   httpx     -> async SSE streaming
+#   rich      -> NOT yet (Phase 4 TUI); plain print keeps RSS low
+#   tiktoken  -> NOT yet (Phase 3); C++ heuristic tokenizer covers 1A
+dependencies = [
+    "httpx>=0.27",
+]
+
+[project.urls]
+Homepage = "https://wuxicode.dev"
+Support = "mailto:ijeonghu522@gmail.com"
+
+[project.scripts]
+wuxicode = "wx.cli:main"
+
+# ---------------------------------------------------------------------
+# scikit-build-core
+# ---------------------------------------------------------------------
+
+[tool.scikit-build]
+cmake.version = ">=3.24"
+cmake.build-type = "Release"          # maps to --config Release on MSVC
+
+# Build artifacts stay out of the source tree and out of the repo.
+build-dir = "build/{wheel_tag}"
+
+# python/wx -> site-packages/wx   (created at file 10)
+wheel.packages = ["python/wx"]
+
+# _wx_core.pyd must land at site-packages ROOT so `import _wx_core` works.
+wheel.install-dir = ""
+
+# Editable: python files redirect to the source tree, the compiled module
+# is loaded from build-dir.
+# Do NOT set `rebuild = true` — it recompiles on every import.
+editable.mode = "redirect"
+
+sdist.include = [
+    "version.json",
+    "CMakeLists.txt",
+    "cmake/**",
+    "cpp/**",
+    "python/**",
+    "assets/**",
+    "README.md",
+    "LICENSE",
+]
+sdist.exclude = [
+    "build/**",
+    "**/__pycache__/**",
+    "**/*.pyc",
+    ".github/**",
+    "web/**",
+    "tests/**",
+]
+
+# ---------------------------------------------------------------------
+# delvewheel — bundles vcruntime140.dll / msvcp140.dll into the wheel.
+# Required because we link /MD (version.json msvc_runtime). Without it the
+# extension dies on machines with a partial VC redistributable install.
+# Runs as an auditwheel plugin hook at `pip wheel` time.
+# ---------------------------------------------------------------------
+
+[tool.delvewheel]
+exclude = []
+
+# ---------------------------------------------------------------------
+# tooling
+# ---------------------------------------------------------------------
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["python"]
+addopts = "-q --strict-markers"
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B"]
+ignore = ["E501"]
+
+[tool.ruff.lint.per-file-ignores]
+"python/wx/__init__.py" = ["F401"]

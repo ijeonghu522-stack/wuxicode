@@ -1,0 +1,64 @@
+{
+  "provider": "groq",
+  "model": "llama-3.3-70b-versatile",
+  "base_url": "https://api.groq.com/openai/v1",
+  "api_key": null,
+  "timeout": 60.0,
+  "connect_timeout": 10.0,
+  "max_retries": 3,
+  "fallback_chain": [
+    "llama-3.3-70b-versatile",
+    "llama-3.1-70b-versatile",
+    "mixtral-8x7b-32768"
+  ],
+  "model_presets": [
+    {
+      "name": "Llama 3.3 70B (Groq)",
+      "id": "llama-3.3-70b-versatile",
+      "icon": "🚀",
+      "desc": "Groq · 무료 · 툴 지원",
+      "provider": "groq",
+      "tier": "free"
+    },
+    {
+      "name": "Llama 3.1 70B (Groq)",
+      "id": "llama-3.1-70b-versatile",
+      "icon": "🚀",
+      "desc": "Groq · 무료 · 툴 지원",
+      "provider": "groq",
+      "tier": "free"
+    },
+    {
+      "name": "Mixtral 8x7B",
+      "id": "mixtral-8x7b-32768",
+      "icon": "🧠",
+      "desc": "Groq · 무료",
+      "provider": "groq",
+      "tier": "free"
+    },
+    {
+      "name": "GPT-4o mini",
+      "id": "gpt-4o-mini",
+      "icon": "🔑",
+      "desc": "OpenAI · 유료",
+      "provider": "openai",
+      "requires_key": "OPENAI_API_KEY",
+      "tier": "paid"
+    },
+    {
+      "name": "Claude Sonnet 4.5",
+      "id": "claude-sonnet-4-5",
+      "icon": "🎭",
+      "desc": "Anthropic · 유료",
+      "provider": "custom",
+      "base_url": "https://api.anthropic.com/v1",
+      "requires_key": "ANTHROPIC_API_KEY",
+      "tier": "paid"
+    }
+  ],
+  "ui": {
+    "model_selector": "tui",
+    "show_model_bar": true,
+    "show_icons": true
+  }
+}
