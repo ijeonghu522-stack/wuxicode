@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WUXICODE — 툴이 읽는 동안에도 흐르는 코딩 에이전트</title>
+<meta name="description" content="하이브리드 코딩 에이전트. 모델이 토큰을 내보내는 동안 도구가 병렬로 읽고, git 인식 캐시로 오래된 결과를 절대 다시 쓰지 않습니다.">
+<meta property="og:title" content="WUXICODE — 툴이 읽는 동안에도 흐르는 코딩 에이전트">
+<meta property="og:description" content="스트리밍이 멈추지 않는 코딩 에이전트. C++20 네이티브 코어, git 인식 캐시 무효화.">
+<meta property="og:type" content="website">
+<meta name="theme-color" content="#0B0B12">
+<link rel="icon" href="assets/favicon.ico" sizes="any">
+<link rel="icon" href="assets/icon-512.png" type="image/png">
+<link rel="apple-touch-icon" href="assets/icon-180.png">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+
+<header class="nav">
+  <div class="wrap nav-inner">
+    <a class="brand" href="#top">
+      <img src="assets/icon-512.png" alt="" width="28" height="28">
+      <span>WUXICODE</span>
+    </a>
+    <nav class="nav-links">
+      <a href="#why">왜</a>
+      <a href="#how">동작</a>
+      <a href="#build">빌드</a>
+      <a href="#download">다운로드</a>
+      <a href="#license">라이선스</a>
+    </nav>
+    <a class="btn btn-ghost nav-cta" href="#download">받기</a>
+  </div>
+</header>
+
+<main id="top">
+
+<!-- ───────────────────────────── hero ───────────────────────────── -->
+<section class="hero">
+  <div class="hero-glow" aria-hidden="true"></div>
+  <div class="wrap">
+    <p class="eyebrow"><span class="dot"></span>v0.2.0 · Windows · Python 3.10+ · C++20</p>
+    <h1>
+      툴이 읽는 동안에도<br>
+      <span class="grad">흐르는</span> 코딩 에이전트
+    </h1>
+    <p class="lede">
+      기존 코딩 에이전트는 전부 같은 지점에서 멈춥니다. 모델이 도구 결과를 요청하고,
+      도구가 돌고, 모델이 기다립니다. 이 한 설계 결함에서 세 가지 증상이 나옵니다.
+    </p>
+    <div class="hero-actions">
+      <a class="btn" href="#download">Windows EXE 받기</a>
+      <a class="btn btn-ghost" href="#why">왜 다른지 보기</a>
+    </div>
+
+    <div class="terminal" role="img" aria-label="터미널 예시">
+      <div class="term-bar">
+        <i class="t-dot r"></i><i class="t-dot y"></i><i class="t-dot g"></i>
+        <span class="term-title">WUXICODE — 대화형</span>
+      </div>
+      <pre><code><span class="c-dim">&gt;</span> <span class="c-text">auth 모듈의 토큰 검증 방어 설명해줘</span>
+
+<span class="c-ok">✓</span> <span class="c-dim">read</span>  python/wx/auth/key_validator.py      <span class="c-dim">41ms</span>
+<span class="c-ok">✓</span> <span class="c-dim">read</span>  python/wx/auth/provider_store.py     <span class="c-dim">38ms</span>
+<span class="c-ok">✓</span> <span class="c-dim">read</span>  python/wx/llm/router.py              <span class="c-dim">36ms</span>
+<span class="c-ok">✓</span> <span class="c-dim">read</span>  tests/test_learn.py                   <span class="c-dim">33ms</span>
+<span class="c-dim">… 토큰 수신 중 (4개 도구 병렬 실행)</span>
+
+<span class="c-accent">WX</span> <span class="c-dim">│</span> <span class="c-text">네 개 파일을 병렬로 읽었습니다.</span>
+<span class="c-text">키 검증은</span> <span class="c-key">validate_key()</span><span class="c-text">가 네트워크를 직접 호출하고,</span>
+<span class="c-text">성공 시 </span><span class="c-key">store.set_key()</span><span class="c-text">가 base_url까지 함께 기록합니다. 모델 목록</span>
+<span class="c-text">동기화가 실패하면 키를 롤백합니다 — <span class="c-ok">get_provider_store().remove_key()</span>.</span>
+<span class="c-text">한 가지 주의점: 76번 줄에서 provider를 두 번 조회하고 있어,</span>
+<span class="c-text">둘이 다른 객체가 될 수 있습니다…</span></code></pre>
+    </div>
+  </div>
+</section>
+
+<!-- ───────────────────────────── problem ───────────────────────────── -->
+<section id="why" class="band">
+  <div class="wrap">
+    <p class="kicker">왜</p>
+    <h2>한 가지 결함에서 세 가지 증상</h2>
+    <p class="section-lede">
+      모델의 응답이 끝나야 도구를 건드리는 구조라면, 아래 세 가지는 어쩔 수 없는 결과입니다.
+    </p>
+
+    <div class="cards">
+      <article class="card">
+        <div class="card-num">01</div>
+        <h3>스트리밍이 읽기 도구에서 멈춘다</h3>
+        <p>파일 하나를 읽는 동안 UI가 얼어붙습니다. 사용자는 죽은 프로그램으로 오인하고 Ctrl+C를 누릅니다.</p>
+        <p class="card-before">— 응답 완료를 기다린 뒤 도구 실행</p>
+      </article>
+      <article class="card">
+        <div class="card-num">02</div>
+        <h3>오래된 캐시</h3>
+        <p>파일을 고쳤는데 에이전트가 옛 내용을 다시 읽고, 그 위에 덮어씁니다. 재시작하면 고쳐진다는 사실을 알게 되는, 조용하고 악질한 실패.</p>
+        <p class="card-before">— 시간 기반 만료, 또는 만료 없음</p>
+      </article>
+      <article class="card">
+        <div class="card-num">03</div>
+        <h3>컨텍스트 폭발</h3>
+        <p>긴 세션이 요약도 없이 컨텍스트 창에서 죽습니다. 무슨 일이 있었는지 아무도 모릅니다.</p>
+        <p class="card-before">— 무손실 잘라내기</p>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- ───────────────────────────── fixes ───────────────────────────── -->
+<section id="how" class="band band-alt">
+  <div class="wrap">
+    <p class="kicker">해결</p>
+    <h2>세 가지 수정</h2>
+
+    <div class="fix">
+      <div class="fix-mark">1</div>
+      <div class="fix-body">
+        <h3>스트리밍과 읽기가 동시에 돌아갑니다</h3>
+        <p>
+          에이전트 루프는 모델이 토큰을 내보내기 시작하면 곧바로 디스크를 만집니다.
+          읽기 전용 도구(<code>read</code>, <code>grep</code>, <code>glob</code>, <code>ls</code>,
+          <code>git_status</code>, <code>git_diff</code>)는 요청되는 즉시 병렬로 실행되고,
+          결과만 주입 지점에서 합쳐집니다.
+        </p>
+        <p class="note">
+          쓰기는 절대 병렬로 돌지 않습니다. <code>docs/adr/0002-toolscheduler.md</code>
+        </p>
+      </div>
+      <div class="fix-vis">
+        <div class="tl">
+          <div class="tl-row"><span class="tl-t">0ms</span><span class="tl-bar model">모델 토큰 수신</span></div>
+          <div class="tl-row"><span class="tl-t">0ms</span><span class="tl-bar tool">read ×4 병렬 시작</span></div>
+          <div class="tl-row"><span class="tl-t">33ms</span><span class="tl-bar tool2 t33">test_learn.py</span></div>
+          <div class="tl-row"><span class="tl-t">36ms</span><span class="tl-bar tool2 t36">router.py</span></div>
+          <div class="tl-row"><span class="tl-t">38ms</span><span class="tl-bar tool2 t38">provider_store.py</span></div>
+          <div class="tl-row"><span class="tl-t">41ms</span><span class="tl-bar tool2 t41">key_validator.py</span></div>
+          <div class="tl-row"><span class="tl-t">…</span><span class="tl-bar model tinf">모델 계속 수신 중</span></div>
+        </div>
+        <p class="vis-cap">UI가 멈추지 않는다</p>
+      </div>
+    </div>
+
+    <div class="fix">
+      <div class="fix-mark">2</div>
+      <div class="fix-body">
+        <h3>캐시 무효화가 git를 아는 방식입니다</h3>
+        <p>캐시 키는 다섯 축으로 구성됩니다.</p>
+        <ul class="axes">
+          <li><code>tool</code> <span>도구 이름</span></li>
+          <li><code>schema_version</code> <span>출력 형식 변경 시 bump</span></li>
+          <li><code>canonical_args</code> <span>정규화된 인자</span></li>
+          <li><code>HEAD sha + .git/index mtime</code> <span>두 축 모두 필요</span></li>
+          <li><code>(mtime_ns, size)</code> <span>대상 파일</span></li>
+        </ul>
+        <p>
+          이 튜플의 한 바이트라도 바뀌면 재계산됩니다. TTL도 없고 "재시작하시겠습니까"도 없습니다.
+        </p>
+      </div>
+      <div class="fix-vis">
+        <pre class="code"><code><span class="c-dim">// 두 git 축이 모두 필요한 이유</span>
+<span class="c-key">git add</span>    <span class="c-dim">→ index mtime만 움직임</span>
+<span class="c-key">git commit</span> <span class="c-dim">→ HEAD sha만 움직임</span>
+
+<span class="c-dim">// 둘 다 있어야</span> <span class="c-ok">git add</span>
+<span class="c-dim">만으로 캐시가 무효화됩니다</span></code></pre>
+      </div>
+    </div>
+
+    <div class="fix">
+      <div class="fix-mark">3</div>
+      <div class="fix-body">
+        <h3>컨텍스트 압축이 앵커를 붙입니다</h3>
+        <p>
+          오래된 도구 결과는 모델이 요약합니다. 경로, 줄 범위, 내용 해시를 그대로 보존하므로
+          무언가가 조용히 잘려 나가는 일이 없습니다. 열려 있거나 편집 대기 중인 파일은 압축 대상이 아닙니다.
+        </p>
+      </div>
+      <div class="fix-vis">
+        <div class="anchor">
+          <div class="anchor-row"><span class="anchor-key">read_file</span><span class="anchor-val">python/wx/llm/router.py:45-92</span><span class="anchor-hash">a3f9c1e2</span></div>
+          <div class="anchor-row"><span class="anchor-key">bash</span><span class="anchor-val">pytest → 68 passed</span><span class="anchor-hash">7d0b41aa</span></div>
+          <div class="anchor-row"><span class="anchor-key">grep</span><span class="anchor-val">gil_scoped_release × 6</span><span class="anchor-hash">1c9e55f0</span></div>
+        </div>
+        <p class="vis-cap">해시가 없으면 복구할 수 없다</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ───────────────────────────── architecture ───────────────────────────── -->
+<section id="arch" class="band">
+  <div class="wrap">
+    <p class="kicker">아키텍처</p>
+    <h2>C++는 계산하고, Python은 결정합니다</h2>
+    <p class="section-lede">
+      경계는 엄격합니다. C++은 모델을 고르지 않고, 도구 호출을 정렬하지 않고,
+      OpenAI 스키마를 파싱하지 않습니다. <code>docs/adr/0001-sse-boundary.md</code>
+    </p>
+
+    <pre class="arch"><code><span class="c-accent">wx</span> (Python 3.10+)                 <span class="c-accent">wxcore</span> (C++20, pybind11)
+├─ agent/    <span class="c-dim">loop, scheduler</span>       ├─ net/   <span class="c-dim">SSE parser (바이트 단위 상태 기계)</span>
+├─ llm/      <span class="c-dim">providers, router</span>     ├─ cache/ <span class="c-dim">LRU, ToolCache, GitProbe</span>
+├─ tools/    <span class="c-dim">registry, impls</span>       ├─ text/  <span class="c-dim">token counter</span>
+├─ context/  <span class="c-dim">assembly, budget</span>      └─ sys/   <span class="c-dim">console, proc stats</span>
+└─ ui/       <span class="c-dim">brand, banner</span></code></pre>
+
+    <div class="table-wrap">
+      <table class="tbl">
+        <thead><tr><th>조각</th><th>언어</th><th>그 이유</th></tr></thead>
+        <tbody>
+          <tr><td>SSE parser</td><td><span class="tag">C++</span></td><td>임의의 청크 경계에서 정확성을 유지하는 건 상태 기계의 일이고, 매 토큰마다 뜨거운 경로에 놓여 있습니다</td></tr>
+          <tr><td>Tool cache</td><td><span class="tag">C++</span></td><td>mtime + git revision 프로브는 syscall 바운드입니다. LRU 정책은 무료여야 합니다</td></tr>
+          <tr><td>Token counter</td><td><span class="tag">C++</span></td><td>메시지 조립마다 호출됩니다. 거기에 파이썬 루프는 지연 급변입니다</td></tr>
+          <tr><td>Agent loop, 도구, 정책</td><td><span class="tag tag-py">Python</span></td><td>자주 바뀌고, 언어의 반복 속도가 개발 속도가 됩니다</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ───────────────────────────── download ───────────────────────────── -->
+<section id="download" class="band band-alt">
+  <div class="wrap">
+    <p class="kicker">다운로드</p>
+    <h2>Windows 단일 실행 파일</h2>
+    <p class="section-lede">
+      파이썬 설치 없이, 의존성 설치 없이. 네이티브 코어까지 번들에 들어 있습니다.
+    </p>
+
+    <div class="dl-grid">
+      <div class="dl-card">
+        <div class="dl-icon">
+          <img src="assets/icon-512.png" alt="" width="72" height="72">
+        </div>
+        <div class="dl-meta">
+          <span class="dl-name">WUXICODE.exe</span>
+          <span class="dl-size">약 21 MB</span>
+        </div>
+        <ul class="dl-list">
+          <li>단일 파일, 콘솔 서브시스템</li>
+          <li>아이콘 16–256px, 파일 속성 버전 자동 생성</li>
+          <li><code>_wx_core</code> 번들됨</li>
+          <li>시작 시 %TEMP%로 해제 (2–4초)</li>
+        </ul>
+        <pre class="code small"><code><span class="c-dim"># Powershell</span>
+powershell -ExecutionPolicy Bypass -File scripts\build_exe.ps1
+
+<span class="c-dim"># 실행</span>
+.\dist\WUXICODE.exe --doctor</code></pre>
+      </div>
+
+      <div class="dl-card">
+        <div class="dl-meta">
+          <span class="dl-name">WX-1 붙이기</span>
+          <span class="dl-size">GGUF → Ollama</span>
+        </div>
+        <p class="dl-p">
+          EXE는 모델을 담지 않습니다. GGUF를 Ollama로 올리고 엔드포인트를 알려주면 끝입니다.
+        </p>
+        <pre class="code small"><code><span class="c-dim"># 모델 등록</span>
+ollama create wx-1 C:\models\wx-1-q4.gguf
+
+<span class="c-dim"># 주소 지정</span>
+$env:WX_LLM_BASE_URL = <span class="c-str">"http://127.0.0.1:11434/v1"</span>
+$env:WX_LLM_MODEL   = <span class="c-str">"wx-1"</span>
+.\dist\WUXICODE.exe</code></pre>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ───────────────────────────── build ───────────────────────────── -->
+<section id="build" class="band">
+  <div class="wrap">
+    <p class="kicker">빌드</p>
+    <h2>직접 빌드하기</h2>
+    <p class="section-lede">
+      Python 3.10+, CMake 3.24+, MSVC Build Tools. 전체 과정 5분.
+    </p>
+
+    <div class="steps">
+      <div class="step">
+        <div class="step-n">1</div>
+        <h3>네이티브 코어 빌드</h3>
+        <pre class="code"><code>git clone https://github.com/ujin/WUXICODE
+<span class="c-dim">cd</span> WUXICODE
+pip install -e .</code></pre>
+        <p class="step-note">
+          <code>_wx_core</code>가 <code>site-packages</code>에 설치됩니다. 이게 없으면
+          토크나이저와 SSE 파서만 비활성화되고 나머지는 동작합니다.
+        </p>
+      </div>
+
+      <div class="step">
+        <div class="step-n">2</div>
+        <h3>아이콘 생성</h3>
+        <pre class="code"><code>pip install pillow
+python scripts\make_icon.py
+
+<span class="c-dim"># assets/logo.svg → icon.ico + PNG</span></code></pre>
+        <p class="step-note">
+          cairosvg가 있으면 SVG를 그대로, 없으면 Pillow로 같은 그림을 다시 그립니다.
+          Windows에서 cairosvg는 네이티브 DLL이 필요하기 때문입니다.
+        </p>
+      </div>
+
+      <div class="step">
+        <div class="step-n">3</div>
+        <h3>EXE</h3>
+        <pre class="code"><code>powershell -ExecutionPolicy Bypass `
+  -File scripts\build_exe.ps1 -Clean
+
+<span class="c-dim"># dist\WUXICODE.exe</span></code></pre>
+        <p class="step-note">
+          스크립트가 빌드 후 자동으로 <code>--version</code>과 <code>--doctor</code>를
+          돌려 네이티브 코어까지 확인합니다.
+        </p>
+      </div>
+    </div>
+
+    <div class="quality">
+      <h3>릴리스 전에</h3>
+      <pre class="code"><code>python scripts\check_version.py   <span class="c-dim"># 버전 3중 일치 확인</span>
+pytest                            <span class="c-dim"># 68 passed</span>
+ruff check python --select F,E9,B</code></pre>
+    </div>
+  </div>
+</section>
+
+<!-- ───────────────────────────── status ───────────────────────────── -->
+<section id="status" class="band band-alt">
+  <div class="wrap">
+    <p class="kicker">현황</p>
+    <h2>단계별 진행</h2>
+    <div class="table-wrap">
+      <table class="tbl tbl-phase">
+        <thead><tr><th>단계</th><th>범위</th><th>상태</th></tr></thead>
+        <tbody>
+          <tr class="done"><td>1A</td><td>빌드 + SSE 스트림 + 토크나이저 + 배너</td><td><span class="st st-done">완료</span></td></tr>
+          <tr class="done"><td>1B</td><td>LRU, ToolCache, GitProbe, <code>read</code> 도구, 테스트</td><td><span class="st st-done">완료</span></td></tr>
+          <tr class="done"><td>2</td><td>전체 도구 계층, git 인식 무효화, 병렬 스케줄러</td><td><span class="st st-done">완료</span></td></tr>
+          <tr class="done"><td>3</td><td>학습 레이어, 컨텍스트 조립, 예산 원장</td><td><span class="st st-done">완료</span></td></tr>
+          <tr><td>4</td><td>FTXUI TUI, diff 뷰, 상태 바</td><td><span class="st st-next">다음</span></td></tr>
+          <tr><td>5</td><td>서명된 라이선스, WX ZEN 게이팅</td><td><span class="st">—</span></td></tr>
+          <tr class="done"><td>6</td><td>동결 EXE, 웹사이트</td><td><span class="st st-done">완료</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ───────────────────────────── license ───────────────────────────── -->
+<section id="license" class="band">
+  <div class="wrap">
+    <p class="kicker">라이선스</p>
+    <h2>WX Commercial License</h2>
+    <p class="section-lede">개인 사용은 무료입니다. 상업적·팀 사용은 유료입니다.</p>
+
+    <div class="plans">
+      <div class="plan">
+        <div class="plan-name">WX</div>
+        <div class="plan-price">무료</div>
+        <ul>
+          <li>개인 사용</li>
+          <li>비상업적</li>
+          <li>전체 기능</li>
+        </ul>
+      </div>
+      <div class="plan">
+        <div class="plan-name">WX PLUS</div>
+        <div class="plan-price">$10<span>/월</span></div>
+        <ul>
+          <li>개인 상업 사용</li>
+          <li>전체 기능</li>
+          <li>우선 지원</li>
+        </ul>
+      </div>
+      <div class="plan">
+        <div class="plan-name">WX ZEN</div>
+        <div class="plan-price">$15<span>/월</span></div>
+        <ul>
+          <li>팀 상업 사용</li>
+          <li>멀티 세션</li>
+          <li>전체 기능</li>
+        </ul>
+      </div>
+      <div class="plan plan-alt">
+        <div class="plan-name">WX ULTIMATE</div>
+        <div class="plan-price">$25<span>/월</span></div>
+        <ul>
+          <li>API 충전 방식</li>
+          <li>외부 API 키</li>
+          <li>전체 기능</li>
+        </ul>
+      </div>
+    </div>
+
+    <p class="fine">
+      자세한 내용은 저장소의 <code>LICENSE</code>와 <code>docs/LICENSE-PLAN.md</code>를 보세요.
+      문의 <a href="mailto:ijeonghu522@gmail.com">ijeonghu522@gmail.com</a>
+    </p>
+  </div>
+</section>
+
+</main>
+
+<footer class="foot">
+  <div class="wrap foot-inner">
+    <div class="foot-brand">
+      <img src="assets/icon-512.png" alt="" width="24" height="24">
+      <span>WUXICODE</span>
+      <span class="foot-ver">v0.2.0</span>
+    </div>
+    <p class="fine">
+      made by ujin · <a href="mailto:ijeonghu522@gmail.com">ijeonghu522@gmail.com</a>
+    </p>
+  </div>
+</footer>
+
+<script src="assets/main.js" defer></script>
+</body>
+</html>

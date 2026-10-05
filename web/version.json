@@ -1,0 +1,26 @@
+{
+  "name": "WUXICODE",
+  "slug": "wuxicode",
+  "version": "0.2.0",
+  "channel": "dev",
+
+  "python_package": "wx",
+  "extension_module": "_wx_core",
+
+  "python_requires": ">=3.10",
+  "cmake_minimum": "3.24",
+  "cxx_standard": 20,
+  "msvc_runtime": "MD",
+
+  "license": {
+    "spdx": "LicenseRef-WX-Commercial",
+    "name": "WUXICODE (WX) Commercial License",
+    "file": "LICENSE",
+    "plan": "docs/LICENSE-PLAN.md"
+  },
+
+  "platform": {
+    "primary": "windows",
+    "os_priority": ["windows", "linux", "macos"]
+  }
+}
