@@ -12,7 +12,7 @@ from dataclasses import dataclass
 from typing import Protocol
 
 from wx.ui import brand
-from wx.ui.width import pad_to, str_width, truncate_to
+from wx.ui.width import pad_to, truncate_to
 
 
 # =============================================================================

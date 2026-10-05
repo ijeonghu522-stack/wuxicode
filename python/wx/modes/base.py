@@ -9,7 +9,6 @@ from abc import ABC, abstractmethod
 from collections.abc import AsyncIterator
 from typing import Any
 
-from wx.agent.events import Event
 from wx.llm.router import ModelRouter
 
 

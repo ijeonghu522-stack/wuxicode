@@ -28,21 +28,17 @@ import asyncio
 import os
 import sys
 import time
+from typing import Any
 
 from wx import __version__, require_core
-from wx.agent.events import Error, Notice, StreamInterrupted, TextDelta, TurnDone, Usage
+from wx.agent.events import Error, Notice, StreamInterrupted, TextDelta, TurnDone
 from wx.agent.loop import AgentLoop
-from wx.auth.key_validator import list_configured_providers
-from wx.auth.provider_store import get_provider_store
 from wx.config import load_config, provider_needs_key
-from wx.llm.openai_client import DEFAULT_MODEL, StreamError
+from wx.llm.openai_client import StreamError
 from wx.llm.router import ModelRouter, load_router_config
 from wx.modes import ChatMode, AgentMode, get_mode_registry
 from wx.ui import banner, brand
 from wx.ui.model_selector import (
-    DEFAULT_PRESETS,
-    ModelPreset,
-    get_renderer,
     load_presets_from_config,
     run_model_selector,
 )
@@ -209,9 +205,48 @@ def build_parser() -> argparse.ArgumentParser:
         "--doctor", action="store_true", help="check the native core and exit"
     )
     parser.add_argument(
+        "--learn",
+        action="store_true",
+        help="distil recent tool calls into learned rules, publish them, and prune",
+    )
+    parser.add_argument(
+        "--learn-days",
+        type=float,
+        default=7.0,
+        metavar="N",
+        help="window for --learn (default: 7 days)",
+    )
+    parser.add_argument(
         "--version", action="version", version=f"{brand.PRODUCT_NAME} {__version__}"
     )
     return parser
+
+
+# ---------------------------------------------------------------------------
+# learn
+# ---------------------------------------------------------------------------
+
+
+def run_learn(days: float) -> int:
+    """Run the nightly digest and print its report.
+
+    This is the loop that makes the agent specific to a repository rather than
+    generic: every failed `bash` call and every repeated successful one becomes
+    a rule that gets injected into the next turn's system prompt. Cheap to run,
+    so it is meant to be run daily rather than as a special occasion.
+    """
+    from wx.learn import run_digest
+
+    try:
+        report = run_digest(window_days=days)
+    except Exception as exc:  # the layer is optional; never take the CLI down
+        print(f"학습 리포트 생성 실패: {type(exc).__name__}: {exc}", file=sys.stderr)
+        return EXIT_ERROR
+
+    print(report.report_text)
+    if report.notes:
+        return EXIT_ERROR
+    return EXIT_OK
 
 
 # ---------------------------------------------------------------------------
@@ -1007,6 +1042,9 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.doctor:
         return run_doctor()
+
+    if args.learn:
+        return run_learn(args.learn_days)
 
     # Determine mode: interactive if no prompt or "chat" as first arg
     is_interactive = not args.prompt or (len(args.prompt) == 1 and args.prompt[0].lower() == "chat")

@@ -7,7 +7,6 @@ from __future__ import annotations
 
 import os
 import json
-import re
 from collections.abc import AsyncIterator
 from typing import Any
 
@@ -15,14 +14,12 @@ from wx.agent.tools import get_all_tools
 from wx.llm.openai_client import (
     DoneChunk,
     ReasoningChunk,
-    StreamEvent,
     StreamInterrupted,
     TextChunk,
     ToolCallDelta,
     UsageChunk,
 )
 from wx.modes.base import Mode
-from wx.llm.router import ModelRouter
 
 
 def _debug(msg: str) -> None:

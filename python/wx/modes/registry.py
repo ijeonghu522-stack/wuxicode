@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from wx.modes.base import Mode, ModeError, UnknownModeError
+from wx.modes.base import ModeError, UnknownModeError
 
 
 class ModeRegistry:

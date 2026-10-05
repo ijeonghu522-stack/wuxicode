@@ -19,7 +19,6 @@ from urllib.request import Request, urlopen
 from wx.llm.openai_client import (
     DoneChunk,
     DEFAULT_BASE_URL,
-    DEFAULT_MODEL,
     FALLBACK_CHAIN,
     OpenAIClient,
     StreamError,

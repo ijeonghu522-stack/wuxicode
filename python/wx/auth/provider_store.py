@@ -11,9 +11,8 @@ import stat
 from dataclasses import dataclass, asdict
 from datetime import datetime
 from pathlib import Path
-from typing import Any
 
-from wx.providers.registry import get_provider, PROVIDER_REGISTRY
+from wx.providers.registry import PROVIDER_REGISTRY
 from wx.providers.base import ModelInfo
 
 
@@ -50,13 +49,13 @@ class ProviderStore:
         try:
             with self.path.open("r", encoding="utf-8") as f:
                 data = json.load(f)
-            for name, data in data.get("providers", {}).items():
+            for name, entry in data.get("providers", {}).items():
                 self._data[name] = StoredProvider(
-                    api_key=data.get("api_key", ""),
-                    base_url=data.get("base_url", ""),
-                    models=data.get("models", []),
-                    last_sync=data.get("last_sync"),
-                    enabled=data.get("enabled", True),
+                    api_key=entry.get("api_key", ""),
+                    base_url=entry.get("base_url", ""),
+                    models=entry.get("models", []),
+                    last_sync=entry.get("last_sync"),
+                    enabled=entry.get("enabled", True),
                 )
         except (json.JSONDecodeError, OSError):
             # Corrupted file - start fresh
@@ -65,11 +64,6 @@ class ProviderStore:
     def _save(self) -> None:
         """Save providers to file with restricted permissions."""
         self.path.parent.mkdir(parents=True, exist_ok=True)
-        data = {
-            "providers": {
-                name: asdict(provider) for name, provider in self._data.items()
-            }
-        }
         # Write to temp file first, then atomic rename
         temp_path = self.path.with_suffix(".tmp")
         with temp_path.open("w", encoding="utf-8") as f:

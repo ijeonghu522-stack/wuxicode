@@ -5,16 +5,15 @@ Interactive UI for managing provider API keys and models.
 
 from __future__ import annotations
 
-import asyncio
 import os
 import sys
 from dataclasses import dataclass
 
 from wx.auth.key_validator import add_provider, list_configured_providers, mask_key
 from wx.auth.provider_store import get_provider_store
-from wx.providers.registry import get_provider, PROVIDER_REGISTRY
+from wx.providers.registry import get_provider
 from wx.ui import brand
-from wx.ui.width import pad_to, str_width, truncate_to
+from wx.ui.width import pad_to, truncate_to
 
 
 @dataclass
@@ -93,7 +92,6 @@ class ProviderManager:
         CYAN = brand.fg((0x06, 0xB6, 0xD4))
         GREEN = brand.fg((0x7C, 0xFF, 0x3B))
         YELLOW = brand.fg((0xFF, 0xB0, 0x20))
-        RED = brand.fg((0xFF, 0x55, 0x55))
         DIM = brand.DIM
         RESET = brand.RESET
 
@@ -155,8 +153,6 @@ class ProviderManager:
             return "\n".join(lines)
 
         CYAN = brand.fg((0x06, 0xB6, 0xD4))
-        GREEN = brand.fg((0x7C, 0xFF, 0x3B))
-        YELLOW = brand.fg((0xFF, 0xB0, 0x20))
         RED = brand.fg((0xFF, 0x55, 0x55))
         DIM = brand.DIM
         RESET = brand.RESET
@@ -200,7 +196,6 @@ class ProviderManager:
             lines.append("└" + "─" * width + "┘")
             return "\n".join(lines)
 
-        CYAN = brand.fg((0x06, 0xB6, 0xD4))
         RED = brand.fg((0xFF, 0x55, 0x55))
         DIM = brand.DIM
         RESET = brand.RESET

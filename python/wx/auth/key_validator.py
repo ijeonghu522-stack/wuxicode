@@ -2,10 +2,8 @@
 
 from __future__ import annotations
 
-from typing import Any
 
 from wx.providers.registry import get_provider, PROVIDER_REGISTRY
-from wx.providers.base import ModelInfo
 from wx.auth.provider_store import get_provider_store
 
 
@@ -72,8 +70,8 @@ async def add_provider(name: str, api_key: str) -> tuple[bool, str | None]:
     if not valid:
         return False, error or "Invalid API key"
 
-    # Get base URL
-    provider_obj = get_provider(name)
+    # Get base URL. `provider` is the one resolved at the top of this function;
+    # looking it up a second time would only risk two different objects.
     base_url = provider.base_url if provider else ""
 
     # Store key

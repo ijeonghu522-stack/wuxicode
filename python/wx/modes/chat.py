@@ -12,7 +12,6 @@ from typing import Any
 from wx.llm.openai_client import (
     DoneChunk,
     ReasoningChunk,
-    StreamEvent,
     StreamInterrupted,
     TextChunk,
     UsageChunk,
