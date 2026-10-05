@@ -11,11 +11,11 @@ build-backend = "scikit_build_core.build"
 
 [project]
 name = "wuxicode"
-version = "0.1.0"
+version = "0.2.0"
 description = "Hybrid coding agent that streams while your tools read."
 readme = "README.md"
 requires-python = ">=3.10"
-license = "MIT"
+license = "LicenseRef-WX-Commercial"
 license-files = ["LICENSE"]
 authors = [
     { name = "ujin", email = "ijeonghu522@gmail.com" },

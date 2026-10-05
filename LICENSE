@@ -1,21 +1,148 @@
-MIT License
+WUXICODE (WX) COMMERCIAL LICENSE
+Version 0.2.0 — Effective 2026
 
-Copyright (c) 2026 ujin
+SPDX-License-Identifier: LicenseRef-WX-Commercial
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+Copyright (c) 2026 ujin. All rights reserved.
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+This is a proprietary, source-available license. It replaces the MIT License
+that previously governed this software. WUXICODE is not open source and is not
+released under any OSI-approved license.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+
+1. DEFINITIONS
+
+   "Software" means the WUXICODE source tree, the `wx` Python package, the
+   `_wx_core` compiled extension, the WUXICODE license server, and any
+   distribution or build thereof produced by the Licensor.
+
+   "Licensor" means ujin, the copyright holder and licensor of the Software.
+
+   "You" means the individual or legal entity exercising the rights granted by
+   this License.
+
+   "Authorized Use" means use of the Software strictly within the scope of the
+   entitlement tier You hold, as published in docs/LICENSE-PLAN.md and enforced
+   by the license server.
+
+   "Tier" means WX (Free), WX PLUS, or WX ZEN, each granting the entitlements
+   defined for that tier.
+
+
+2. GRANT OF LICENSE
+
+   Subject to Your compliance with this License and payment of any applicable
+   fees, the Licensor grants You a personal, non-exclusive, non-transferable,
+   non-sublicensable, revocable license to install and execute the Software on
+   any number of devices You personally control, solely for Your Authorized
+   Use.
+
+   WX PLUS and WX ZEN licensees are granted the right to use the Software for
+   commercial and production purposes. WX (Free) licensees are granted personal,
+   non-commercial use only.
+
+   No other rights are granted. All rights not expressly granted herein are
+   reserved by the Licensor.
+
+
+3. RESTRICTIONS
+
+   You may not:
+
+   (a) publish, mirror, redistribute, sublicense, rent, lease, or otherwise make
+       the Software available to any third party, in source or binary form;
+
+   (b) remove, alter, or obscure any copyright notice, license notice, or
+       entitlement watermark in the Software or its output;
+
+   (c) copy the Software into a derived product, service, or platform you
+       distribute or make commercially available;
+
+   (d) use the license server, activation endpoints, or signed entitlement
+       tokens except as the Software uses them, or attempt to forge, mint, or
+       tamper with entitlement tokens or license checks;
+
+   (e) circumvent, disable, or interfere with tier gating, token accounting, or
+       concurrency limits;
+
+   (f) use a single license key for more than one individual or concurrent
+       session, beyond the `max_concurrent` entitlement of Your Tier.
+
+   Reverse engineering is permitted only to the limited extent that applicable
+   law (including mandatory local law permitting such reverse engineering for
+   interoperability or debugging) expressly permits it notwithstanding this
+   section.
+
+
+4. ENTITLEMENTS AND TIER SCOPE
+
+   Tier definitions, token limits, model access, tool permissions, and
+   concurrency limits are specified in docs/LICENSE-PLAN.md, which is the
+   authoritative commercial description of this Software, and in the tier
+   definitions shipped with the license server.
+
+   The Software verifies Your entitlement online. The Licensor may adjust tier
+   terms prospectively as announced in the release notes. Adjustments do not
+   apply retroactively to a paid term already paid for.
+
+   Network failure, server outage, or license revocation suspends paid
+   entitlements until the condition is resolved. Free-tier functionality does not
+   require network access to remain functional.
+
+
+5. TERM AND TERMINATION
+
+   This License is effective from the date You first run the Software and
+   continues until terminated.
+
+   This License terminates automatically and without notice upon any breach of
+   Section 3, or upon the expiry of the paid term for the applicable Tier.
+
+   Upon termination You must cease all use of the Software and delete all copies
+   in your possession or control. Accrued fees are non-refundable except where
+   mandatory law provides otherwise.
+
+
+6. SUPPORT
+
+   Priority support is provided to WX ZEN licensees only, as published in
+   docs/LICENSE-PLAN.md. Availability of features, models, and third-party
+   providers may change and is not a warranty of continued service.
+
+
+7. NO WARRANTY
+
+   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+   IMPLIED, INCLUDING WITHOUT LIMITATION THE WARRANTIES OF MERCHANTABILITY,
+   FITNESS FOR A PARTICULAR PURPOSE, TITLE, AND NONINFRINGEMENT. THE LICENSOR
+   MAKES NO WARRANTY THAT THE SOFTWARE WILL BE ERROR-FREE OR UNINTERRUPTED, AND
+   NO WARRANTY REGARDING THIRD-PARTY MODEL PROVIDER AVAILABILITY OR OUTPUT
+   QUALITY.
+
+
+8. LIMITATION OF LIABILITY
+
+   TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW, IN NO EVENT SHALL THE
+   LICENSOR BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+   CONSEQUENTIAL, EXEMPLARY, OR PUNITIVE DAMAGES, OR FOR LOST PROFITS, REVENUE,
+   DATA, OR BUSINESS INTERRUPTION, ARISING IN ANY WAY OUT OF THE USE OF THE
+   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
+
+
+9. UPDATES TO THIS LICENSE
+
+   Future versions may be identified by a version number in the Software itself
+   (see version.json). The license in effect is the version shipped with the copy
+   of the Software You obtained, unless You accept a later version explicitly.
+
+
+10. GOVERNING LAW
+
+   This License is governed by the laws of the Republic of Korea, without regard
+   to conflict-of-law principles. Courts of Seoul, Republic of Korea have
+   exclusive jurisdiction.
+
+   ---
+
+   Commercial inquiries: ijeonghu522@gmail.com
+   Terms: https://wuxicode.dev
