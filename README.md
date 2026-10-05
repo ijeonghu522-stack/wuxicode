@@ -117,6 +117,19 @@ pytest
 ruff check .
 ```
 
+## 라이선스
+
+WX Commercial License (LicenseRef-WX-Commercial)
+
+- **WX (무료)**: 개인, 비상업적 사용
+- **WX PLUS ($10/월)**: 개인, 상업적 사용
+- **WX ZEN ($15/월)**: 팀, 상업적 사용
+- **WX ULTIMATE ($25/월)**: API 충전 방식
+
+자세한 내용: [LICENSE](LICENSE) · [라이선스 전략](docs/LICENSE-PLAN.md)
+
+문의: ijeonghu522@gmail.com
+
 ## Contact
 
 `ijeonghu522@gmail.com`
