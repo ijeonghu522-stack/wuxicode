@@ -47,8 +47,8 @@ wx (Python 3.10+)                 wxcore (C++20, pybind11)
 ├─ agent/    loop, scheduler       ├─ net/   SSE parser (byte-level state machine)
 ├─ llm/      providers, router     ├─ cache/ LRU, ToolCache, GitProbe
 ├─ tools/    registry, impls       ├─ text/  token counter
-├─ context/  assembly, budget      ├─ tui/   FTXUI renderer (60fps)
-└─ ui/       brand, banner         └─ sys/   console, proc stats
+├─ context/  assembly, budget      └─ sys/   console, proc stats
+└─ ui/       brand, banner
 ```
 
 The boundary is strict: **C++ computes, Python decides.** C++ never picks a
@@ -61,7 +61,6 @@ model, never orders tool calls, never parses an OpenAI schema. See
 | Tool cache | C++ | mtime + git revision probes are syscall-bound; the LRU policy must be free |
 | Token counter | C++ | Called on every message assembly; a Python loop there is a latency spike |
 | Agent loop, tools, policy | Python | Changes often, benefits from the language's iteration speed |
-| TUI | C++ (FTXUI) | 60fps repaint without per-frame allocation or GIL churn |
 
 ## Build
 
@@ -74,48 +73,64 @@ pip install -e .
 wuxicode --help
 ```
 
-## Status
-
-`0.1.0` — Phase 1A complete, Phase 1B complete.
-
-| Phase | Scope | State |
-|---|---|---|
-| 1A | build + SSE stream + token counter + banner | done |
-| 1B | LRU, ToolCache, GitProbe, `read` tool, tests | done |
-| 2 | full tool layer, git-aware invalidation, parallel scheduler | next |
-| 3 | context compaction, budget ledger, AGENTS.md | — |
-| 4 | FTXUI TUI, diff view, status bar, low-spec 60fps | — |
-| 5 | auth, signed licenses, W_X ZEN gating | — |
-| 6 | frozen EXE, website, billing | — |
-
-### What 1B actually does
-
-The cache is keyed on five axes — tool name, schema version, canonical
-arguments, `(HEAD sha, .git/index mtime)`, and the target's `(mtime_ns, size)` —
-and there is no TTL anywhere in it. An unchanged file is never re-read; a file
-edited a millisecond ago is never served stale. Both git axes are required:
-`git add` moves the index without moving HEAD, and `git commit` moves HEAD
-without the index leading the way.
-
-The `read` tool caches raw bytes and keeps its formatting in Python, so changing
-an error message does not retire every entry ever stored. Errors are never
-cached.
-
-### Build and test
+### Windows EXE
 
 ```powershell
-pip install -e .                  # builds _wx_core, installs wx in editable mode
+python scripts\make_icon.py                                # assets/logo.svg -> .ico
+powershell -ExecutionPolicy Bypass -File scripts\build_exe.ps1
+.\dist\WUXICODE.exe --doctor
+```
+
+One file, ~21 MB, native core bundled, no Python required on the target
+machine. Full guide: [docs/exe-build.md](docs/exe-build.md).
+
+## Daily loop
+
+```powershell
+python scripts\daily.py                  # learn -> test -> build -> site
+python scripts\daily.py --skip-build     # learn + test only
+wuxicode --learn                         # just distil today's tool calls
+```
+
+Every failed `bash` call and every repeated successful one becomes a rule that
+gets injected into the next turn's system prompt. `daily.py` runs the digest,
+the tests, the lint rules that catch real bugs, the native rebuild when
+`cpp/` changed, the EXE build, and the site sync — and writes a dated report
+to `docs/reports/`.
+
+## Testing
+
+```powershell
+pytest
+ruff check python --select F,E9,B          # F=undefined/unused, E9=syntax, B=bugbear
+python scripts\check_version.py            # version sources agree
+python web\check_site.py                   # site structure
 
 # C++ — needs pybind11_DIR on a standalone build, see cpp/CMakeLists.txt
 cmake -S . -B build -DWX_BUILD_TESTS=ON -DCMAKE_BUILD_TYPE=Release -Dpybind11_DIR=<...>
 cmake --build build --config Release
 ctest --test-dir build -C Release --output-on-failure
-
-# Python
-pip install -e ".[dev]"
-pytest
-ruff check .
 ```
+
+## Versioning
+
+`version.json` is the single source. CMake bakes it into `_wx_core`,
+`pyproject.toml` carries it for pip, and `wx/__init__.py` reads it at import.
+`scripts/check_version.py` fails the build if they ever diverge.
+
+## Status
+
+`0.2.0`
+
+| Phase | Scope | State |
+|---|---|---|
+| 1A | build + SSE stream + token counter + banner | done |
+| 1B | LRU, ToolCache, GitProbe, `read` tool, tests | done |
+| 2 | full tool layer, git-aware invalidation, parallel scheduler | done |
+| 3 | learning layer, context assembly, budget ledger | done |
+| 4 | FTXUI TUI, diff view, status bar | next |
+| 5 | signed licenses, W_X ZEN gating | — |
+| 6 | frozen EXE, website | done |
 
 ## 라이선스
 
@@ -129,10 +144,6 @@ WX Commercial License (LicenseRef-WX-Commercial)
 자세한 내용: [LICENSE](LICENSE) · [라이선스 전략](docs/LICENSE-PLAN.md)
 
 문의: ijeonghu522@gmail.com
-
-## Contact
-
-`ijeonghu522@gmail.com`
 
 ---
 
