@@ -10,7 +10,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from enum import Enum
 
 
@@ -18,6 +18,7 @@ class Tier(Enum):
     FREE = "free"
     PLUS = "plus"
     ZEN = "zen"
+    ULTIMATE = "ultimate"
 
 
 @dataclass(frozen=True)
@@ -34,8 +35,13 @@ class TierConfig:
     can_run_bash: bool
     can_use_git: bool
     can_preview: bool
+    # ULTIMATE만 True. API 키 발급과 외부 서비스 통합이 여기에 걸린다.
+    can_api_access: bool
     models: tuple[str, ...]
     priority_support: bool
+    # "free" | "subscription" | "prepaid"
+    # prepaid는 API 크레딧 충전 방식이라 구독 티어와 정산 주기가 다르다.
+    billing_type: str
 
     def allows_model(self, model: str) -> bool:
         """이 티어에서 model을 쓸 수 있는지."""
@@ -72,8 +78,10 @@ TIERS = {
         can_run_bash=False,
         can_use_git=False,
         can_preview=False,
+        can_api_access=False,
         models=("wx-1",),
         priority_support=False,
+        billing_type="free",
     ),
     Tier.PLUS: TierConfig(
         name="WX PLUS",
@@ -87,8 +95,10 @@ TIERS = {
         can_run_bash=True,
         can_use_git=True,
         can_preview=True,
+        can_api_access=False,
         models=("wx-1", "space-bunny-free"),
         priority_support=False,
+        billing_type="subscription",
     ),
     Tier.ZEN: TierConfig(
         name="WX ZEN",
@@ -102,6 +112,7 @@ TIERS = {
         can_run_bash=True,
         can_use_git=True,
         can_preview=True,
+        can_api_access=False,
         models=(
             "wx-1",
             "space-bunny-free",
@@ -110,11 +121,39 @@ TIERS = {
             "claude-sonnet",
         ),
         priority_support=True,
+        billing_type="subscription",
+    ),
+    Tier.ULTIMATE: TierConfig(
+        name="WX ULTIMATE",
+        price_krw=33_000,
+        price_usd=25,
+        key_prefix="WXU",
+        daily_tokens=5_000_000,
+        monthly_tokens=100_000_000,
+        max_concurrent=20,
+        can_write_files=True,
+        can_run_bash=True,
+        can_use_git=True,
+        can_preview=True,
+        can_api_access=True,
+        models=(
+            "wx-1",
+            "space-bunny-free",
+            "qwen/qwen3.8-27b",
+            "openai/gpt-oss-120b",
+            "openai/gpt-oss-20b",
+            "allam-2-7b",
+            "gpt-4o-mini",
+            "claude-sonnet",
+        ),
+        priority_support=True,
+        billing_type="prepaid",
     ),
 }
 
 
-# 키 접두사 -> 티어. WXP- 로 시작하면 PLUS, WXZ- 면 ZEN.
+# 키 접두사 -> 티어. WXP- 로 시작하면 PLUS, WXZ- 면 ZEN, WXU- 면 ULTIMATE.
+# TIERS에서 파생하므로 접두사를 추가할 때 이 dict를 손댈 필요는 없다.
 PREFIX_TO_TIER = {
     cfg.key_prefix: tier for tier, cfg in TIERS.items() if cfg.key_prefix is not None
 }

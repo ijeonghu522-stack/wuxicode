@@ -35,14 +35,40 @@ released under any OSI-approved license.
    fees, the Licensor grants You a personal, non-exclusive, non-transferable,
    non-sublicensable, revocable license to install and execute the Software on
    any number of devices You personally control, solely for Your Authorized
-   Use.
+   Use. Rights are granted by Tier as follows.
 
-   WX PLUS and WX ZEN licensees are granted the right to use the Software for
-   commercial and production purposes. WX (Free) licensees are granted personal,
-   non-commercial use only.
+   2.1  WX (Free) — individual use only. Personal and non-commercial. No license
+        key is issued or required. A single individual at a time.
+
+   2.2  WX PLUS — individual use, commercial permitted. Commercial and
+        production use are granted. Seats are limited to one (1) individual.
+
+   2.3  WX ZEN — team use, commercial permitted. Commercial and production use
+        are granted to a team of up to five (5) individuals.
+
+   2.4  WX ULTIMATE — API access, commercial permitted. Commercial and
+        production use are granted to a team of up to ten (10) individuals.
+        In addition to the CLI entitlements of every other Tier, this Tier
+        grants:
+          (a) issuance of API keys for programmatic access to the Software's
+              model endpoints;
+          (b) integration of those API keys into external applications and
+              services You own or operate;
+          (c) priority support, and concurrent request and token ceilings as
+              published in docs/LICENSE-PLAN.md.
+
+   WX ULTIMATE is billed on prepaid credit, not by subscription. The purchase
+   price credits a fixed quantity of tokens to Your account. Credits are drawn
+   down as the Software consumes model output. When the remaining balance
+   reaches zero, access stops until the account is recharged. Optional
+   auto-recharge, if enabled by You, debits the payment method on file at the
+   rate published at purchase. Unused credits do not roll over past the
+   recharge term stated on the purchase.
 
    No other rights are granted. All rights not expressly granted herein are
-   reserved by the Licensor.
+   reserved by the Licensor. In particular, no Tier grants the right to
+   distribute, sublicense, or make the Software available to a party outside
+   the seat limit stated above.
 
 
 3. RESTRICTIONS
@@ -66,7 +92,17 @@ released under any OSI-approved license.
        concurrency limits;
 
    (f) use a single license key for more than one individual or concurrent
-       session, beyond the `max_concurrent` entitlement of Your Tier.
+       session, beyond the `max_concurrent` entitlement of Your Tier, or seat
+       Your account beyond the seat limit stated in Section 2;
+
+   (g) with an API key issued under Section 2.4: embed the key in any product,
+       application, or service that You distribute or make available to third
+       parties; publish the key; or use it outside the rate, concurrency, and
+       token ceilings of your Tier;
+
+   (h) resell, sublicense, or meter API access obtained under Section 2.4 as a
+       standalone offering, whether free or paid, without a separate written
+       agreement with the Licensor.
 
    Reverse engineering is permitted only to the limited extent that applicable
    law (including mandatory local law permitting such reverse engineering for
@@ -76,10 +112,10 @@ released under any OSI-approved license.
 
 4. ENTITLEMENTS AND TIER SCOPE
 
-   Tier definitions, token limits, model access, tool permissions, and
-   concurrency limits are specified in docs/LICENSE-PLAN.md, which is the
-   authoritative commercial description of this Software, and in the tier
-   definitions shipped with the license server.
+   Tier definitions, token limits, model access, tool permissions, API access
+   rights, billing mode, and concurrency limits are specified in
+   docs/LICENSE-PLAN.md, which is the authoritative commercial description of
+   this Software, and in the tier definitions shipped with the license server.
 
    The Software verifies Your entitlement online. The Licensor may adjust tier
    terms prospectively as announced in the release notes. Adjustments do not
@@ -96,7 +132,10 @@ released under any OSI-approved license.
    continues until terminated.
 
    This License terminates automatically and without notice upon any breach of
-   Section 3, or upon the expiry of the paid term for the applicable Tier.
+   Section 3, or upon the expiry of the paid term for the applicable Tier. For
+   WX ULTIMATE, the paid term is the credit balance: depletion of the balance
+   suspends API access under Section 2.4 but does not by itself terminate this
+   License, which resumes on recharge.
 
    Upon termination You must cease all use of the Software and delete all copies
    in your possession or control. Accrued fees are non-refundable except where

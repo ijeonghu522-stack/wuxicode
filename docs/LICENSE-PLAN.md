@@ -52,27 +52,41 @@
 `license_server/tiers.py`의 `TIERS`가 값을 정의한다. 이 표는 그 값을
 사람이 읽는 정리이며, 숫자가 어긋나면 `tiers.py`를 고친 뒤 여기를 맞춰라.
 
-| | **WX (Free)** | **WX PLUS** | **WX ZEN** |
-|---|---|---|---|
-| 키 접두사 | (키 불필요) | `WXP-` | `WXZ-` |
-| 가격 | 0원 / $0 | 13,000원 / $10 | 20,000원 / $15 |
-| 일일 토큰 | 50,000 | 500,000 | 2,000,000 |
-| 월간 토큰 | 1,000,000 | 10,000,000 | 50,000,000 |
-| 동시 세션 | 1 | 3 | 10 |
-| 파일 쓰기/편집 | ✗ | ✓ | ✓ |
-| bash 실행 | ✗ | ✓ | ✓ |
-| git 도구 | ✗ | ✓ | ✓ |
-| preview | ✗ | ✓ | ✓ |
-| 모델 | `wx-1` | + `space-bunny-free` | + `qwen/qwen3.8-27b`, `gpt-4o-mini`, `claude-sonnet` |
-| 우선 지원 | ✗ | ✗ | ✓ |
-| **사용 범위** | **개인·비영리** | **상업·프로덕션 허용** | **상업·프로덕션 허용** |
+| | **WX (Free)** | **WX PLUS** | **WX ZEN** | **WX ULTIMATE** |
+|---|---|---|---|---|
+| 키 접두사 | (키 불필요) | `WXP-` | `WXZ-` | `WXU-` |
+| 정산 방식 | `free` | `subscription` | `subscription` | **`prepaid`** |
+| 가격 | 0원 / $0 | 13,000원 / $10 | 20,000원 / $15 | 33,000원 / $25 |
+| 충전 단위 | — | — | — | $25 = 5M 토큰 크레딧 |
+| 일일 토큰 | 50,000 | 500,000 | 2,000,000 | 5,000,000 |
+| 월간 토큰 | 1,000,000 | 10,000,000 | 50,000,000 | 100,000,000 |
+| 동시 세션 | 1 | 3 | 10 | 20 |
+| 좌석 | 1인 | 1인 | 5인 | 10인 |
+| 파일 쓰기/편집 | ✗ | ✓ | ✓ | ✓ |
+| bash 실행 | ✗ | ✓ | ✓ | ✓ |
+| git 도구 | ✗ | ✓ | ✓ | ✓ |
+| preview | ✗ | ✓ | ✓ | ✓ |
+| **API 접근** | ✗ | ✗ | ✗ | **✓ (유일)** |
+| 모델 | `wx-1` | + `space-bunny-free` | + `qwen/qwen3.8-27b`, `gpt-4o-mini`, `claude-sonnet` | + `openai/gpt-oss-120b`, `openai/gpt-oss-20b`, `allam-2-7b` |
+| 우선 지원 | ✗ | ✗ | ✓ | ✓ |
+| **사용 범위** | **개인·비영리** | **개인·상업** | **팀(5인)·상업** | **API·팀(10인)·상업** |
 
-핵심 분기점은 하나다: **WX Free는 개인·비영리 전용, PLUS와 ZEN은 상업 사용이
-라이선스로 명시적으로 허용된다.** 유료 티어 없이는 회사 업무, 고객 서비스,
-프로덕션 파이프라인에 쓸 수 없다.
+핵심 분기점은 셋이다:
+
+1. **WX Free는 개인·비영리 전용.** 유료 티어 없이는 회사 업무, 고객 서비스,
+   프로덕션 파이프라인에 쓸 수 없다.
+2. **API 접근은 ULTIMATE만.** `can_api_access=True`가 이 티어를 정의하는 유일한
+   필드다. 나머지 권한은 ZEN과 동일하므로, ULTIMATE는 "API가 붙은 상위 ZEN"이다.
+3. **ULTIMATE만 정산이 다르다.** `billing_type="prepaid"` — 월 구독이 아니라
+   선불 크레딧이다. 잔액 0이면 접근이 멈추고 재충전해야 한다. OPENCODE ZEN의
+   충전 방식과 같은 규율이다.
 
  읽기 계열 도구(`read`, `glob`, `grep`, `list`)는 Free에서도 열린다. 제품이
 시연되지 않으면 티어의 가치를 확인할 방법이 없기 때문이다.
+
+좌석 수는 아직 `tiers.py`에 필드로 없다. LICENSE §2의 계약 문구(PLUS 1인 /
+ZEN 5인 / ULTIMATE 10인)로는 강제할 수 없으므로, 서버 구현 전에
+`max_seats` 필드를 추가해야 한다 — **미구현 항목.**
 
 
 ## 4. 강제 방식
@@ -80,16 +94,23 @@
 라이선스는 문서와 서버 양쪽에서 작동한다.
 
 **문서 측 (LICENSE §2, §3)**
-재배포 금지, 파생 제품 금지, 라이선스 표기 제거 금지, 단일 키 공유 금지.
+재배포 금지, 파생 제품 금지, 라이선스 표기 제거 금지, 단일 키 공유 금지,
+좌석 초과 금지(§3(f)), API 키 배포·재판매 금지(§3(g), §3(h)).
 
 **서버 측 (`python/wx/auth/`)**
-1. 키가 `WXP-` / `WXZ-` 접두사를 갖는지 확인 → `tier_from_prefix`
+1. 키가 `WXP-` / `WXZ-` / `WXU-` 접두사를 갖는지 확인 → `tier_from_prefix`
 2. 티어별 엔티틀먼트를 서버가 서명해 토큰으로 발급
 3. 클라이언트는 **서버가 서명한 토큰의 엔티틀먼트만 신뢰**한다. 클라이언트에
    하드코딩된 티어 판정은 신뢰 경계 밖이다
 4. `TierConfig.allows_tool()` 이 도구 단위 권한을 판정. 알 수 없는 도구는
    보수적으로 거부 (`False`)
 5. 일일/월간 토큰은 서버 계정에서 차감, `max_concurrent` 초과 시 거부
+6. `can_api_access=False`인 계정으로의 API 키 발급 시도는 거부. API 엔드포인트는
+   이 플래그를 티어 판정과 **분리된 경로**로 확인한다 — 도구 권한 판정을
+   통과해도 API 호출은 막힐 수 있다
+7. `billing_type="prepaid"` 계정은 잔액을 기준으로 권한을 결정한다. 구독 티어의
+   `daily_tokens`/`monthly_tokens` 상한이 아니라 크레딧 잔액이 마침표다.
+   잔액 0이면 401/402 계열로 거절하고, 재충전 시 즉시 복구한다
 
 `can_run_bash`와 `can_use_git`이 Free에서 꺼진 이유: 셸 실행과 git push는
 에이전트가 사용자 파일시스템과 원격 저장소에 손을 댈 수 있는 지점이다. Free 티어
@@ -118,10 +139,13 @@ Phase 1B에서 C++ 캐시(`cpp/core/cache/`)와 git probe(`git_probe.cpp`)가
 
 - [ ] Phase 2: 서명 토큰 발급/검증 경로 구현 (Tier → entitlements)
 - [ ] Phase 2: `allows_tool()` 배선을 실제 도구 디스패처에 연결
-- [ ] setuptools ≥ 77 확인 후 `pip wheel` 1회로 PEP 639 메타데이터 검증
-- [ ] README에 라이선스 요약 배너 추가 (지금 `README.md:88`에 Phase 5 게이트로만 존재)
+- [ ] Phase 2: `TierConfig.max_seats` 추가 — LICENSE §2의 좌석 수를 서버에서 강제
+- [ ] Phase 2: `billing_type="prepaid"` 잔액 차감 경로 + 재충전 / auto-reload
+- [ ] Phase 2: `can_api_access` 검사 — ULTIMATE 계정에만 API 키 발급
+- [ ] setuptools ≥ 77 확인 후 `pip wheel` 1회로 PEP 639 메타데이터 검증 (84.0.0 확인 완료)
+- [x] README 라이선스 배너 추가 (`README.md` "## 라이선스" 섹션)
 - [ ] 배포 시 `LICENSE`를 웹 약관 페이지와 동일 텍스트로 동기화
-- [ ] 유료 티어Terms 페이지를 wuxicode.dev에 게시
+- [ ] 유료 티어 Terms 페이지를 wuxicode.dev에 게시
 
 ## 7. 변경 이력
 
@@ -129,3 +153,4 @@ Phase 1B에서 C++ 캐시(`cpp/core/cache/`)와 git probe(`git_probe.cpp`)가
 |---|---|
 | 0.1.0 | MIT 라이선스. 상업 판매 불가, 키/게이트 법적 근거 없음 |
 | 0.2.0 | `LICENSE`를 WX Commercial License로 교체. `LicenseRef-WX-Commercial` 채택. 티어별 상업 사용 범위를 §3에 명시 |
+| 0.2.0 | WX ULTIMATE 추가. `Tier.ULTIMATE` / `WXU-` 접두사 / $25 선불 크레딧 정산 / `can_api_access` 필드 도입. LICENSE §2에 티어별 허가·좌석 수·크레딧 소진 규칙, §3(g)(h)에 API 키 제한 명시 |
