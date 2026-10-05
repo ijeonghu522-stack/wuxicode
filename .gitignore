@@ -18,6 +18,10 @@ sdist/
 .coverage
 htmlcov/
 
+# PyInstaller가 매 빌드마다 덮어쓰는 스펙 파일.
+# 정밀한 제어가 필요하면 직접 관리하고, 그때는 이 줄을 지운다.
+*.spec
+
 # ── C++ / CMake 빌드 산출물 ──────────────────────────────────────────
 # build/ 안에는 .obj .lib .exp .tlog .vcxproj .cmake API 응답 등이 들어있다.
 # 전부 재생성 가능하므로 커밋하지 않는다.
@@ -78,6 +82,14 @@ test_input.txt
 # output/    는 LoRA·병합모델·GGUF. 용량 GB 급이라 커밋하면 저장소가 죽는다.
 datasets/
 output/
+
+# daily.py 가 날짜별로 쌓는 실행 리포트. 이력은 로컬에 남기되 커밋에는 안 올린다.
+docs/reports/
+
+# web/ 은 정적 사이트 소스다. 배포는 web/ 폴더째 올리는 방식이라 빌드 산출물이
+# 필요 없다. 혹시 나중에 번들러를 넣더라도 결과물은 올라가지 않게 막아둔다.
+web/dist/
+web/.cache/
 
 # 에디터 / OS
 .vscode/
