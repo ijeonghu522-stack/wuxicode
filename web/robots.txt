@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+
+# Nothing here is worth indexing except the page itself; assets and the
+# version manifest have no content a crawler wants.
+Disallow: /assets/
+Disallow: /version.json

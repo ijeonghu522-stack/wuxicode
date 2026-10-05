@@ -1,0 +1,50 @@
+name: Deploy site to GitHub Pages
+
+# Publishes web/ on every push to main. Three files, no build step -- the only
+# job here is to run the structure check and upload, so a broken asset path
+# fails the workflow instead of reaching a reader.
+#
+# Setup, once, in the repo settings:
+#   Settings > Pages > Source: GitHub Actions
+# Then the address will be https://ijeonghu522-stack.github.io/wuxicode/
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "web/**"
+      - ".github/workflows/pages.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Never let two deploys race. Without this, a rapid second push can promote
+# the older artifact.
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check site structure
+        run: python web/check_site.py
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: web
+
+      - id: deployment
+        uses: actions/deploy-pages@v4

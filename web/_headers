@@ -1,0 +1,29 @@
+/*
+  Cache policy for the static site.
+
+  The HTML must never be cached hard, or a version bump ships to nobody:
+  browsers and CDNs hold on to index.html for a long time by default, and the
+  whole point of sync_site.py is that this page describes a build. Everything
+  else is content-addressed by nothing, so it gets revalidated.
+
+  Fingerprinted assets would allow immutable caching, but the site is three
+  files that change rarely and the fingerprinting would need a build step --
+  the thing this site deliberately does not have.
+*/
+
+/*
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  X-Frame-Options: DENY
+  Permissions-Policy: geolocation=(), microphone=(), camera=(), interest-cohort=()
+
+  Content-Security-Policy: default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'; connect-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'
+
+/index.html
+  Cache-Control: no-cache, must-revalidate
+
+/assets/*
+  Cache-Control: public, max-age=3600, must-revalidate
+
+/version.json
+  Cache-Control: no-cache, must-revalidate

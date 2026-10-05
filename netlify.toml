@@ -1,0 +1,24 @@
+# Netlify build config.
+#
+# The site is three files with no build step. `publish` points straight at the
+# source directory and the "build" command only runs the structure check, so a
+# broken deploy fails here instead of in front of a reader.
+#
+# Cloudflare Pages and GitHub Pages want the same three settings:
+#   build command   python web/check_site.py
+#   output directory web
+#   root            /
+
+[build]
+  command = "python web/check_site.py"
+  publish = "web"
+
+[build.environment]
+  PYTHONIOENCODING = "utf-8"
+
+# The site is entirely client-side, so there is nothing to rewrite. Listed for
+# the benefit of anyone who later adds a /download that should hit /dist.
+# [[redirects]]
+#   from = "/latest/*"
+#   to = "/dist/:splat"
+#   status = 200

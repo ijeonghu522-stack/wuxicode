@@ -1,7 +1,12 @@
 """Static checks on web/ — no node, no network, no browser.
 
 Catches the failures that actually happen when editing a static site by hand:
-a typo'd asset path, an unclosed tag, a CSS brace that does not balance.
+a typo'd asset path, an unclosed tag, a CSS brace that does not balance, a
+var() with no declaration, an anchor pointing at nothing, a root-absolute path
+that works on a host and breaks from disk.
+
+Every *.html file is checked, not just index.html. A 404 page with broken
+asset paths ships exactly as easily as a broken index does.
 """
 
 from __future__ import annotations
@@ -12,6 +17,7 @@ from html.parser import HTMLParser
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
+
 VOID = {
     "area", "base", "br", "col", "embed", "hr", "img", "input",
     "link", "meta", "param", "source", "track", "wbr",
@@ -25,7 +31,6 @@ class Collector(HTMLParser):
         self.errors: list[str] = []
         self.refs: list[str] = []
         self.ids: set[str] = set()
-        self.headings: list[tuple[str, str]] = []
         self.imgs_no_alt = 0
 
     def handle_starttag(self, tag, attrs):
@@ -41,8 +46,6 @@ class Collector(HTMLParser):
         # presence, not truthiness.
         if tag == "img" and "alt" not in d:
             self.imgs_no_alt += 1
-        if re.fullmatch(r"h[1-6]", tag):
-            self._h = []
         if tag not in VOID:
             self.stack.append((tag, self.getpos()[0]))
 
@@ -55,94 +58,107 @@ class Collector(HTMLParser):
         open_tag, line = self.stack.pop()
         if open_tag != tag:
             self.errors.append(
-                f"line {self.getpos()[0]}: </{tag}> closes <{open_tag}> opened at line {line}"
+                f"line {self.getpos()[0]}: </{tag}> closes <{open_tag}> "
+                f"opened at line {line}"
             )
 
 
-def main() -> int:
-    problems: list[str] = []
+def check_page(page: Path) -> list[str]:
+    """One HTML file: tags, assets, anchors, required furniture."""
+    out: list[str] = []
+    here = page.name
+    html = page.read_text(encoding="utf-8")
 
+    c = Collector()
+    c.feed(html)
+
+    for e in c.errors:
+        out.append(f"{here}: {e}")
+    if c.stack:
+        out.append(f"{here}: unclosed tags: {[t for t, _ in c.stack]}")
+
+    for ref in c.refs:
+        if ref.startswith(("http://", "https://", "mailto:")):
+            continue
+        target, sep, frag = ref.partition("#")
+        if target.startswith("/"):
+            # Root-absolute works on a real host and breaks under file://.
+            # The site is meant to open from disk as well as be deployed.
+            out.append(f"{here}: root-absolute path {ref} breaks file:// use")
+            target = target.lstrip("/")
+        if target:
+            if not (page.parent / target).exists():
+                out.append(f"{here}: missing asset: {ref}")
+        elif sep and len(frag) > 1 and frag not in c.ids:
+            out.append(f"{here}: anchor with no target: {ref}")
+
+    if "<title>" not in html:
+        out.append(f"{here}: no <title>")
+    if not re.search(r'<meta\s+name="viewport"[^>]*width=device-width', html):
+        out.append(f"{here}: no viewport meta")
+    if 'lang="ko"' not in html:
+        out.append(f"{here}: html element has no lang attribute")
+    if "<h1" not in html:
+        out.append(f"{here}: no <h1>")
+    if c.imgs_no_alt:
+        out.append(f"{here}: {c.imgs_no_alt} <img> without alt")
+
+    return out
+
+
+def check_assets() -> list[str]:
+    """CSS and JS balance, and every var() has a declaration."""
+    out: list[str] = []
+
+    css_path = ROOT / "assets" / "style.css"
+    if not css_path.exists():
+        out.append("missing assets/style.css")
+    else:
+        css = css_path.read_text(encoding="utf-8")
+        if css.count("{") != css.count("}"):
+            out.append(
+                f"CSS braces unbalanced: {css.count('{')} open, "
+                f"{css.count('}')} close"
+            )
+        declared = set(re.findall(r"(--[a-z0-9-]+)\s*:", css))
+        used = set(re.findall(r"var\((--[a-z0-9-]+)", css))
+        undefined = used - declared
+        if undefined:
+            out.append(f"CSS uses undefined variables: {sorted(undefined)}")
+
+    js_path = ROOT / "assets" / "main.js"
+    if not js_path.exists():
+        out.append("missing assets/main.js")
+    else:
+        js = js_path.read_text(encoding="utf-8")
+        for open_c, close_c in (("{", "}"), ("(", ")"), ("[", "]")):
+            if js.count(open_c) != js.count(close_c):
+                out.append(
+                    f"JS {open_c}{close_c} unbalanced: "
+                    f"{js.count(open_c)} vs {js.count(close_c)}"
+                )
+
+    return out
+
+
+def main() -> int:
     index = ROOT / "index.html"
     if not index.exists():
         print(f"  [XX] missing {index}")
         return 1
 
-    html = index.read_text(encoding="utf-8")
-    c = Collector()
-    c.feed(html)
+    pages = sorted(ROOT.glob("*.html"))
+    problems: list[str] = []
+    for page in pages:
+        problems += check_page(page)
+    problems += check_assets()
 
-    for e in c.errors:
-        problems.append(e)
-    if c.stack:
-        problems.append(f"unclosed tags: {[t for t, _ in c.stack]}")
-
-    # -- assets referenced actually exist ---------------------------------
-    for ref in c.refs:
-        if ref.startswith(("http://", "https://", "mailto:", "#")):
-            continue
-        target = ref.split("#", 1)[0].split("?", 1)[0]
-        if not target:
-            continue
-        p = (index.parent / target).resolve()
-        if not p.exists():
-            problems.append(f"missing asset: {ref}")
-
-    # -- in-page anchors resolve ------------------------------------------
-    for ref in c.refs:
-        if ref.startswith("#") and len(ref) > 1:
-            if ref[1:] not in c.ids:
-                problems.append(f"anchor with no target: {ref}")
-
-    # -- required page furniture ------------------------------------------
-    if "<title>" not in html:
-        problems.append("no <title>")
-    m = re.search(r'<meta\s+name="viewport"[^>]*width=device-width', html)
-    if not m:
-        problems.append("no viewport meta (mobile will render at desktop width)")
-    if 'lang="ko"' not in html:
-        problems.append('html element has no lang attribute')
-    if "<h1" not in html:
-        problems.append("no <h1>")
-    if c.imgs_no_alt:
-        problems.append(f"{c.imgs_no_alt} <img> without alt")
-    if "description" not in html:
-        problems.append('no meta name="description"')
-
-    # -- CSS balances ------------------------------------------------------
-    css_path = index.parent / "assets" / "style.css"
-    if not css_path.exists():
-        problems.append("missing assets/style.css")
-    else:
-        css = css_path.read_text(encoding="utf-8")
-        if css.count("{") != css.count("}"):
-            problems.append(
-                f"CSS braces unbalanced: {css.count('{')} open, {css.count('}')} close"
-            )
-        # var(--x) with no matching declaration
-        declared = set(re.findall(r"(--[a-z0-9-]+)\s*:", css))
-        used = set(re.findall(r"var\((--[a-z0-9-]+)", css))
-        undefined = used - declared
-        if undefined:
-            problems.append(f"CSS uses undefined variables: {sorted(undefined)}")
-
-    # -- JS balances -------------------------------------------------------
-    js_path = index.parent / "assets" / "main.js"
-    if not js_path.exists():
-        problems.append("missing assets/main.js")
-    else:
-        js = js_path.read_text(encoding="utf-8")
-        for open_c, close_c in (("{", "}"), ("(", ")"), ("[", "]")):
-            if js.count(open_c) != js.count(close_c):
-                problems.append(
-                    f"JS {open_c}{close_c} unbalanced: "
-                    f"{js.count(open_c)} vs {js.count(close_c)}"
-                )
-
-    print(f"  html   {len(html):>6} bytes   {len(c.ids)} ids   {len(c.refs)} refs")
-    if css_path.exists():
-        print(f"  css    {len(css_path.read_text(encoding='utf-8')):>6} bytes")
-    if js_path.exists():
-        print(f"  js     {len(js_path.read_text(encoding='utf-8')):>6} bytes")
+    for page in pages:
+        print(f"  {page.name:<14} {page.stat().st_size:>6} bytes")
+    for name in ("assets/style.css", "assets/main.js"):
+        p = ROOT / name
+        if p.exists():
+            print(f"  {Path(name).name:<14} {p.stat().st_size:>6} bytes")
     print()
 
     if problems:
@@ -151,7 +167,7 @@ def main() -> int:
             print(f"   - {p}")
         return 1
 
-    print("  structure OK")
+    print(f"  structure OK ({len(pages)} page(s))")
     return 0
 
 
