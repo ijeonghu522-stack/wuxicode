@@ -158,6 +158,29 @@ def _get_env(key: str, default: Any = None) -> Any:
         return value
 
 
+def _resolve(env_key: str, file_config: dict[str, Any], field: str, default: Any = None) -> Any:
+    """Environment beats file beats default.
+
+    Every setting goes through here so the precedence is stated once. It was
+    written inline per field before, and the fields disagreed: only api_key
+    honoured the documented order, while provider/model/base_url/timeout read
+    the file first. The visible symptom was WX_LLM_BASE_URL -- the documented
+    way to point at a local Ollama -- being silently ignored whenever a
+    config.json happened to carry a base_url.
+
+    An empty environment variable counts as unset. `WX_LLM_MODEL=""` means
+    "I did not set this", not "set it to the empty string", and falling through
+    matches how shells treat an unset export.
+    """
+    env = _get_env(env_key)
+    if env not in (None, ""):
+        return env
+    value = file_config.get(field)
+    if value not in (None, ""):
+        return value
+    return default
+
+
 def load_config(path: Path | None = None) -> Config:
     """Load configuration from file and environment."""
     config_path = find_config_file(path)
@@ -174,22 +197,21 @@ def load_config(path: Path | None = None) -> Config:
     else:
         _debug_log("no config file found")
 
-    # Apply provider defaults first
-    provider = file_config.get("provider") or _get_env("WX_LLM_PROVIDER") or DEFAULT_PROVIDER
+    # Provider first: its defaults are the floor everything else sits on.
+    provider = _resolve("WX_LLM_PROVIDER", file_config, "provider", DEFAULT_PROVIDER)
     provider_defaults = PROVIDER_DEFAULTS.get(provider, PROVIDER_DEFAULTS[DEFAULT_PROVIDER])
 
-    # API key priority: WX_LLM_API_KEY > OPENAI_API_KEY > config.json
-    env_api_key = _get_env("WX_LLM_API_KEY")
-    if env_api_key is None:
-        env_api_key = _get_env("OPENAI_API_KEY")
+    # API key keeps its own longer chain: WX_LLM_API_KEY > OPENAI_API_KEY >
+    # config.json. _resolve only knows about one env name.
+    env_api_key = _get_env("WX_LLM_API_KEY") or _get_env("OPENAI_API_KEY")
     file_api_key = file_config.get("api_key")
-
     if env_api_key:
         api_key = env_api_key
-        if _get_env("WX_LLM_API_KEY"):
-            _debug_log("api_key loaded from: WX_LLM_API_KEY")
-        else:
-            _debug_log("api_key loaded from: OPENAI_API_KEY")
+        _debug_log(
+            "api_key loaded from: WX_LLM_API_KEY"
+            if _get_env("WX_LLM_API_KEY")
+            else "api_key loaded from: OPENAI_API_KEY"
+        )
     elif file_api_key:
         api_key = file_api_key
         _debug_log("api_key loaded from: config.json")
@@ -197,10 +219,11 @@ def load_config(path: Path | None = None) -> Config:
         api_key = None
         _debug_log("api_key: NOT FOUND")
 
-    # Merge: defaults < file < env
-    model = file_config.get("model") or _get_env("WX_LLM_MODEL") or provider_defaults.get("model")
-    # An explicit empty list is a real setting — "no fallback, single model" —
-    # not a missing value. `or` swallows it and hands back the default chain.
+    model = _resolve("WX_LLM_MODEL", file_config, "model", provider_defaults.get("model"))
+
+    # An explicit empty list is a real setting -- "no fallback, single model" --
+    # not a missing value, so this cannot go through `or`. An empty *env* string
+    # is still unset, matching _resolve.
     file_fallback = file_config.get("fallback_chain")
     if isinstance(file_fallback, list):
         fallback_chain = list(file_fallback)
@@ -215,11 +238,11 @@ def load_config(path: Path | None = None) -> Config:
     config = Config(
         provider=provider,
         model=model,
-        base_url=file_config.get("base_url") or _get_env("WX_LLM_BASE_URL") or provider_defaults.get("base_url"),
+        base_url=_resolve("WX_LLM_BASE_URL", file_config, "base_url", provider_defaults.get("base_url")),
         api_key=api_key,
-        timeout=file_config.get("timeout") or _get_env("WX_LLM_TIMEOUT", 60.0),
-        connect_timeout=file_config.get("connect_timeout") or _get_env("WX_LLM_CONNECT_TIMEOUT", 10.0),
-        max_retries=file_config.get("max_retries") or _get_env("WX_LLM_MAX_RETRIES", 3),
+        timeout=_resolve("WX_LLM_TIMEOUT", file_config, "timeout", 60.0),
+        connect_timeout=_resolve("WX_LLM_CONNECT_TIMEOUT", file_config, "connect_timeout", 10.0),
+        max_retries=_resolve("WX_LLM_MAX_RETRIES", file_config, "max_retries", 3),
         fallback_chain=fallback_chain,
         model_presets=file_config.get("model_presets"),
         ui=file_config.get("ui"),
