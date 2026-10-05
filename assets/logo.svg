@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <defs>
+    <linearGradient id="wxGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#7C3AED"/>
+      <stop offset="100%" stop-color="#06B6D4"/>
+    </linearGradient>
+    <linearGradient id="wxGrad2" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#A78BFA"/>
+      <stop offset="100%" stop-color="#22D3EE"/>
+    </linearGradient>
+    <filter id="glow" x="-25%" y="-25%" width="150%" height="150%">
+      <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- 둥근 사각형 배경 -->
+  <rect x="16" y="16" width="224" height="224" rx="48" fill="url(#wxGrad)"/>
+
+  <!-- 내부 하이라이트 -->
+  <rect x="16" y="16" width="224" height="224" rx="48" fill="none" stroke="url(#wxGrad2)" stroke-width="2" opacity="0.5"/>
+
+  <!-- W 글자 -->
+  <path d="M 44 88 L 66 168 L 88 120 L 110 168 L 132 88"
+        stroke="white" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"
+        fill="none" filter="url(#glow)"/>
+
+  <!-- X 글자 -->
+  <path d="M 164 88 L 212 168 M 212 88 L 164 168"
+        stroke="white" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"
+        fill="none" filter="url(#glow)"/>
+
+  <!-- 장식 점 -->
+  <circle cx="128" cy="200" r="6" fill="white" opacity="0.7"/>
+  <circle cx="112" cy="200" r="3" fill="white" opacity="0.5"/>
+  <circle cx="144" cy="200" r="3" fill="white" opacity="0.5"/>
+</svg>
