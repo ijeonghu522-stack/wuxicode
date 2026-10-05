@@ -1,4 +1,4 @@
-﻿"""WX-1 QLoRA 학습 스크립트 (Colab T4용)"""
+"""WX-1 QLoRA 학습 스크립트 (Colab T4용)"""
 from __future__ import annotations
 
 import argparse
@@ -14,7 +14,7 @@ from transformers import (
     BitsAndBytesConfig,
     TrainingArguments,
 )
-from trl import SFTTrainer
+from trl import SFTTrainer, SFTConfig
 
 
 def load_yaml(path: Path) -> dict:
@@ -100,33 +100,43 @@ def main():
 
     # 학습
     t = cfg["training"]
-    ta = TrainingArguments(
+
+    # gradient checkpointing 시 입력 gradient 필요 (QLoRA 필수)
+    if hasattr(model, "enable_input_require_grads"):
+        model.enable_input_require_grads()
+
+    # T4(cc 7.5) 는 bf16 미지원 -> 자동 감지
+    use_bf16 = torch.cuda.is_available() and torch.cuda.is_bf16_supported()
+
+    from trl import SFTConfig
+
+    sft_cfg = SFTConfig(
         output_dir=t["output_dir"],
         per_device_train_batch_size=t["per_device_train_batch_size"],
         gradient_accumulation_steps=t["gradient_accumulation_steps"],
         num_train_epochs=t["num_train_epochs"],
         learning_rate=t["learning_rate"],
-        max_grad_norm=0.3,
-        warmup_ratio=t.get("warmup_ratio", 0.03),
+        max_grad_norm=t.get("max_grad_norm", 0.3),
         lr_scheduler_type=t.get("lr_scheduler_type", "cosine"),
+        warmup_steps=t.get("warmup_steps", 10),
         logging_steps=1,
         save_steps=t.get("save_steps", 50),
-        save_total_limit=2,
-        bf16=True,
+        save_total_limit=t.get("save_total_limit", 2),
+        bf16=use_bf16,
+        fp16=not use_bf16,
         gradient_checkpointing=True,
+        optim=t.get("optim", "paged_adamw_8bit"),
         report_to="none",
-        optim="paged_adamw_8bit",
         remove_unused_columns=False,
+        max_length=t.get("max_seq_length", 4096),
+        dataset_text_field="text",
+        packing=False,
     )
-
     trainer = SFTTrainer(
         model=model,
-        tokenizer=tok,
+        processing_class=tok,
         train_dataset=ds,
-        args=ta,
-        dataset_text_field="text",
-        max_seq_length=t["max_seq_length"],
-        packing=False,
+        args=sft_cfg,
     )
 
     print("[WX-1] 학습 시작!")

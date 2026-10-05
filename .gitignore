@@ -73,6 +73,12 @@ test_tool_final.py
 test_final.py
 test_input.txt
 
+# ── WX-1 학습 산출물 / 생성물 ─────────────────────────────
+# datasets/ 는 auto_build_datasets.py 가 만든다 (5000개면 약 3.4MB).
+# output/    는 LoRA·병합모델·GGUF. 용량 GB 급이라 커밋하면 저장소가 죽는다.
+datasets/
+output/
+
 # 에디터 / OS
 .vscode/
 .idea/
