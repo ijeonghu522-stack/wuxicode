@@ -37,6 +37,12 @@ class TierConfig:
     can_preview: bool
     # ULTIMATE만 True. API 키 발급과 외부 서비스 통합이 여기에 걸린다.
     can_api_access: bool
+    # 계정에 소속될 수 있는 사람의 수. LICENSE §2의 좌석 수.
+    max_seats: int
+    # 계정에 저장할 수 있는 세션의 총 개수.
+    max_sessions: int
+    # False면 한 계정에서 세션 하나만 동시에 실행할 수 있다(FREE).
+    can_multi_session: bool
     models: tuple[str, ...]
     priority_support: bool
     # "free" | "subscription" | "prepaid"
@@ -79,6 +85,9 @@ TIERS = {
         can_use_git=False,
         can_preview=False,
         can_api_access=False,
+        max_seats=1,
+        max_sessions=3,
+        can_multi_session=False,
         models=("wx-1",),
         priority_support=False,
         billing_type="free",
@@ -96,6 +105,9 @@ TIERS = {
         can_use_git=True,
         can_preview=True,
         can_api_access=False,
+        max_seats=3,
+        max_sessions=10,
+        can_multi_session=True,
         models=("wx-1", "space-bunny-free"),
         priority_support=False,
         billing_type="subscription",
@@ -113,6 +125,9 @@ TIERS = {
         can_use_git=True,
         can_preview=True,
         can_api_access=False,
+        max_seats=5,
+        max_sessions=50,
+        can_multi_session=True,
         models=(
             "wx-1",
             "space-bunny-free",
@@ -136,6 +151,9 @@ TIERS = {
         can_use_git=True,
         can_preview=True,
         can_api_access=True,
+        max_seats=10,
+        max_sessions=999,
+        can_multi_session=True,
         models=(
             "wx-1",
             "space-bunny-free",
@@ -162,6 +180,23 @@ PREFIX_TO_TIER = {
 def tier_from_prefix(prefix: str) -> Tier | None:
     """키 접두사로 티어를 역산한다. 알 수 없으면 None."""
     return PREFIX_TO_TIER.get(prefix.upper())
+
+
+def tier_from_key(key: str) -> Tier | None:
+    """전체 키에서 티어를 추출한다.
+
+    "WXU-ABCD-EFGH" -> Tier.ULTIMATE, "WXP-1234" -> Tier.PLUS.
+    키가 비었거나 접두사 형식이 아니면 None.
+
+    키 형식 판정만 한다. 키가 실제로 발급됐는지, 유효한지는
+    서버의 서명 검증 경로가 따로 확인한다.
+    """
+    if not key:
+        return None
+    head, sep, _rest = key.strip().partition("-")
+    if not sep or not head:
+        return None
+    return PREFIX_TO_TIER.get(head.upper())
 
 
 def get_tier(tier: Tier | str) -> TierConfig:

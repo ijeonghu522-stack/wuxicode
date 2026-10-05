@@ -249,18 +249,20 @@ py::dict parser_stats(const SseParser& self) {
     return d;
 }
 
+// These three are pure computation on a `const std::string&` and release the
+// GIL through py::call_guard in the m.def below. Do NOT add a
+// py::gil_scoped_release in the body as well: releasing twice makes the second
+// PyEval_SaveThread run with a NULL thread state, which kills the interpreter
+// with a fatal error rather than raising a catchable exception.
 std::uint64_t count_tokens(const std::string& text) {
-    py::gil_scoped_release release;
     return wx::core::text::count(text);
 }
 
 double estimate_tokens(const std::string& text) {
-    py::gil_scoped_release release;
     return wx::core::text::estimate(text);
 }
 
 std::uint64_t hash64(const std::string& data) {
-    py::gil_scoped_release release;
     return wx::core::hash64(data);
 }
 

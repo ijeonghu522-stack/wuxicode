@@ -6,9 +6,8 @@ Abstract base class for all agent tools with OpenAI-compatible schema.
 from __future__ import annotations
 
 import os
-import json
 from abc import ABC, abstractmethod
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any
 
 

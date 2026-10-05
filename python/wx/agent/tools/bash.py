@@ -184,17 +184,15 @@ class BashTool(Tool):
             return f"오류: 위험한 명령어 '{base_cmd}'는 실행할 수 없습니다."
 
         cmd_str = " ".join(cmd_parts)
-        import re
         for pattern in DANGEROUS_PATTERNS:
             if re.search(pattern, cmd_str, re.IGNORECASE):
                 return f"오류: 위험한 패턴이 감지되었습니다: {pattern}"
 
         # On Windows, create_subprocess_shell already wraps with cmd.exe /c
-        # Don't add "cmd /c" prefix to avoid double-wrapping
-        pass
-        import sys
-        print(f"[DEBUG] Executing command: {command!r} (len={len(command)})", file=sys.stderr)
-        print(f"[DEBUG] Command chars: {[c for c in command]}", file=sys.stderr)
+        # Don't add "cmd /c" prefix to avoid double-wrapping.
+        if os.environ.get("WX_DEBUG") == "1":
+            print(f"[DEBUG] Executing command: {command!r} (len={len(command)})", file=sys.stderr)
+            print(f"[DEBUG] Command chars: {[c for c in command]}", file=sys.stderr)
 
         # Execute command in workspace root
         try:
