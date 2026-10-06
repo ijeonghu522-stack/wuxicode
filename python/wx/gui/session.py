@@ -32,7 +32,7 @@ from wx.agent.events import (
 from wx.agent.loop import AgentLoop
 from wx.agent.tools import bash, edit_file, read_file, write_file
 from wx.config import load_config  # noqa: F401  (re-exported for convenience)
-from wx.llm.router import load_router_config
+from wx.llm.router import load_router_config, ModelRouter
 
 Event = dict[str, Any]
 Emit = Callable[[Event], None]
@@ -81,7 +81,8 @@ class Session:
         ]
 
     def _build(self) -> None:
-        self._router = load_router_config()
+        cfg = load_router_config()
+        self._router = ModelRouter(cfg)
         self._loop = AgentLoop(
             self._router,
             system_prompt=None,
@@ -92,13 +93,13 @@ class Session:
     # -- state ------------------------------------------------------------
 
     def state(self) -> SessionState:
-        rc = self._router or load_router_config()
+        cfg = self._router.config if self._router else load_router_config()
         return SessionState(
-            model=rc.primary_model,
-            provider=rc.provider,
-            base_url=rc.base_url,
+            model=cfg.primary_model,
+            provider=cfg.provider,
+            base_url=cfg.base_url,
             workspace=str(self.workspace),
-            has_key=bool(rc.api_key),
+            has_key=bool(cfg.api_key),
             busy=self.busy(),
         )
 
