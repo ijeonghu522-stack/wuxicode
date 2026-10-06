@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WUXICODE</title>
+<link rel="icon" href="icon.ico" sizes="any">
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+
+<!-- ── title bar ─────────────────────────────────────────────────── -->
+<header class="tabsbar">
+  <div class="win-btns">
+    <button class="wb" data-act="min" title="최소화" aria-label="최소화">
+      <svg viewBox="0 0 10 10"><path d="M1 5h8"/></svg>
+    </button>
+    <button class="wb" data-act="max" title="최대화" aria-label="최대화">
+      <svg viewBox="0 0 10 10"><rect x="1.2" y="1.2" width="7.6" height="7.6" rx="1"/></svg>
+    </button>
+    <button class="wb wb-close" data-act="close" title="닫기" aria-label="닫기">
+      <svg viewBox="0 0 10 10"><path d="M1.5 1.5l7 7M8.5 1.5l-7 7"/></svg>
+    </button>
+  </div>
+
+  <nav class="tabs" id="tabs" role="tablist" aria-label="세션 탭"></nav>
+
+  <button class="icon-btn" id="new-tab" title="새 탭 (Ctrl+T)" aria-label="새 탭">
+    <svg viewBox="0 0 16 16"><path d="M8 3v10M3 8h10"/></svg>
+  </button>
+</header>
+
+<div class="body">
+
+  <!-- ── sidebar ──────────────────────────────────────────────────── -->
+  <aside class="side">
+    <div class="side-head">
+      <div class="side-top">
+        <div class="side-title">
+          <span class="dot-live" id="live-dot" title="에이전트 상태"></span>
+          <input id="session-name" class="session-name" value="wx" spellcheck="false"
+                 aria-label="세션 이름">
+        </div>
+        <button class="icon-btn ghost" id="side-menu" title="세션 메뉴" aria-label="세션 메뉴">
+          <svg viewBox="0 0 16 16"><circle cx="3" cy="8" r="1.3"/><circle cx="8" cy="8" r="1.3"/><circle cx="13" cy="8" r="1.3"/></svg>
+        </button>
+      </div>
+      <p class="side-sub" id="workspace">—</p>
+    </div>
+
+    <div class="side-scroll" id="transcript"></div>
+
+    <div class="composer">
+      <div class="composer-row">
+        <button class="model-btn" id="model-btn" aria-haspopup="listbox">
+          <span class="model-name" id="model-name">—</span>
+          <svg class="chev" viewBox="0 0 16 16"><path d="M4 6.5l4 4 4-4"/></svg>
+        </button>
+        <button class="model-btn" id="reason-btn" aria-haspopup="listbox">
+          <span class="model-name" id="reason-name">자동</span>
+          <svg class="chev" viewBox="0 0 16 16"><path d="M4 6.5l4 4 4-4"/></svg>
+        </button>
+        <button class="send-btn" id="send" title="보내기 (Enter)" aria-label="보내기">
+          <svg viewBox="0 0 20 20"><path d="M10 15V4M5 9l5-5 5 5"/></svg>
+        </button>
+      </div>
+      <textarea id="input" class="composer-input" rows="3" spellcheck="false"
+                placeholder="무엇을 하면 되나요?  (Enter 전송 · Shift+Enter 줄바꿈)"></textarea>
+    </div>
+  </aside>
+
+  <!-- ── main ─────────────────────────────────────────────────────── -->
+  <main class="main">
+    <div class="main-tabs" role="tablist" aria-label="패널">
+      <button class="mt is-on" data-panel="chat" role="tab" aria-selected="true">대화</button>
+      <button class="mt" data-panel="review" role="tab" aria-selected="false">검토</button>
+      <button class="mt" data-panel="files" role="tab" aria-selected="false">파일</button>
+    </div>
+
+    <!-- conversation -->
+    <section class="panel is-on" id="panel-chat">
+      <div class="panel-bar">
+        <label class="picker">
+          <svg class="chev" viewBox="0 0 16 16"><path d="M4 6.5l4 4 4-4"/></svg>
+          <select id="project" aria-label="프로젝트"></select>
+        </label>        <div class="search">
+          <svg viewBox="0 0 16 16"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5L14 14"/></svg>
+          <input id="file-search" placeholder="파일 필터" spellcheck="false" aria-label="파일 필터">
+        </div>
+        <span class="spacer"></span>
+        <span class="stat" id="stat-model">—</span>
+      </div>
+
+      <div class="stream" id="stream">
+        <div class="empty" id="empty">
+          <div class="empty-mark">
+            <svg viewBox="0 0 48 48"><path d="M24 6l16 9v18l-16 9-16-9V15z"/></svg>
+          </div>
+          <h2>추측 없이 빈 화면 시작</h2>
+          <p>이 프로젝트의 변경 사항을 추적, 검토 및 실행'''</p>
+          <button class="btn" id="empty-action">Git 저장소 생성</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- review -->
+    <section class="panel" id="panel-review">
+      <div class="panel-bar">
+        <span class="panel-title">이번 턴의 도구 호출</span>
+        <span class="spacer"></span>
+        <span class="stat" id="stat-tools">0</span>
+      </div>
+      <div class="review" id="review"></div>
+    </section>
+
+    <!-- files -->
+    <section class="panel" id="panel-files">
+      <div class="panel-bar">
+        <span class="panel-title">프로젝트 파일</span>
+        <span class="spacer"></span>
+        <span class="stat" id="stat-files">0</span>
+      </div>
+      <div class="files" id="files"></div>
+    </section>
+  </main>
+</div>
+
+<!-- status line -->
+<footer class="status">
+  <span id="status-model">—</span>
+  <span class="sep"></span>
+  <span id="status-ws">—</span>
+  <span class="spacer"></span>
+  <span id="status-usage"></span>
+  <span id="status-latency"></span>
+</footer>
+
+<!-- model picker -->
+<div class="sheet" id="model-sheet" hidden>
+  <div class="sheet-list" role="listbox" aria-label="모델 선택"></div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
