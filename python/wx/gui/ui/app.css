@@ -94,6 +94,11 @@ svg { width: 1em; height: 1em; fill: none; stroke: currentColor;
   background: var(--grad); color: #fff;
   font-size: 9px; font-weight: 800; letter-spacing: -.02em;
 }
+.tab-dot.is-busy {
+  /* A tab whose agent is working must be findable from across the window, so
+     it pulses instead of sitting still like an idle letter. */
+  background: var(--cyan); animation: pulse 1.1s ease-in-out infinite;
+}
 .tab-x {
   border: 0; background: transparent; color: inherit; opacity: 0;
   width: 16px; height: 16px; border-radius: 4px; display: grid; place-items: center;
@@ -108,6 +113,10 @@ svg { width: 1em; height: 1em; fill: none; stroke: currentColor;
   flex: none;
 }
 .icon-btn:hover { background: #E9E9EE; color: var(--chrome-text); }
+/* ghost: sits on the light sidebar, where the default hover grey would read
+   as a pressed state rather than a hover. */
+.icon-btn.ghost { color: var(--chrome-mute); }
+.icon-btn.ghost:hover { background: #E7E7EC; color: var(--chrome-text); }
 .icon-btn svg { width: 15px; height: 15px; }
 
 /* ── layout ─────────────────────────────────────────────────────────── */
@@ -176,6 +185,14 @@ svg { width: 1em; height: 1em; fill: none; stroke: currentColor;
 .chip.is-ok { background: #EAF7F1; color: #0F7350; border-color: #C6E8D8; }
 .chip.is-err { background: #FDF0F0; color: #A62C2C; border-color: #F2C4C4; }
 .chip.is-run { background: #EEF7FA; color: #0A6A80; border-color: #C4E6EE; }
+/* chip-git: "+7 / 2" in the panel bar. Deliberately not the accent gradient --
+   it sits next to the branch name and should read as a count, not a call to
+   action. */
+.chip-git {
+  background: rgba(6,182,212,.12); color: #7FE3F5;
+  border-color: rgba(6,182,212,.32); font-family: var(--mono); font-size: 11px;
+}
+.chip-git[hidden] { display: none; }
 
 .side-scroll .empty-note {
   margin: 20px 0; text-align: center; font-size: 12.5px; color: var(--chrome-mute);
@@ -363,15 +380,117 @@ svg { width: 1em; height: 1em; fill: none; stroke: currentColor;
 .rv.is-err { border-color: rgba(220,75,75,.35); }
 .rv.is-err .rv-name { color: #FF9A9A; }
 
-.fl {
-  display: flex; align-items: center; gap: 9px;
-  padding: 5px 9px; border-radius: 7px;
-  font-family: var(--mono); font-size: 12.5px; color: var(--console-text);
+/* ── panel bits ──────────────────────────────────────────────────────── */
+
+.panel-title { font-size: 12.5px; font-weight: 600; color: var(--chrome-text); }
+
+.mini {
+  border: 1px solid var(--console-line); background: var(--console-2);
+  color: var(--console-mute); border-radius: 6px;
+  padding: 3px 9px; font-size: 11.5px;
 }
-.fl:hover { background: rgba(255,255,255,.04); }
-.fl-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.fl-size { margin-left: auto; color: var(--console-mute); font-size: 11px; flex: none; }
-.fl-dir { color: var(--console-mute); }
+.mini:hover { color: var(--console-text); border-color: rgba(255,255,255,.22); }
+
+.seg {
+  display: flex; gap: 2px; padding: 2px; margin-left: 10px;
+  border-radius: 8px; background: var(--console-2);
+  border: 1px solid var(--console-line);
+}
+.seg-b {
+  border: 0; background: transparent; color: var(--console-mute);
+  border-radius: 6px; padding: 3px 10px; font-size: 11.5px;
+}
+.seg-b.is-on { background: var(--grad); color: #fff; }
+
+.empty-note {
+  padding: 18px 20px; color: var(--console-mute); font-size: 13px;
+  text-align: center;
+}
+.empty-note.is-err { color: #FF9A9A; }
+
+/* ── file tree + viewer ──────────────────────────────────────────────── */
+
+.split { flex: 1; display: flex; min-height: 0; }
+
+.tree {
+  width: 300px; flex: none; overflow-y: auto;
+  border-right: 1px solid var(--console-line);
+  background: var(--console); padding: 6px 0 16px;
+}
+.tree-dir {
+  padding: 7px 0 3px; font-family: var(--mono);
+  font-size: 11px; color: var(--chrome-mute); letter-spacing: .04em;
+}
+.tree-file {
+  display: flex; align-items: center; gap: 8px; width: 100%;
+  border: 0; background: transparent; color: var(--console-text);
+  font-family: var(--mono); font-size: 12.5px; text-align: left;
+  padding-top: 4px; padding-bottom: 4px; padding-right: 10px;
+}
+.tree-file:hover { background: rgba(255,255,255,.05); }
+.tree-file.is-open { background: rgba(124,58,237,.22); color: #fff; }
+.tree-file span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tree-size { margin-left: auto; color: var(--console-mute); font-size: 10.5px; flex: none; }
+
+.viewer { flex: 1; min-width: 0; display: flex; flex-direction: column; background: #101015; }
+.viewer-head {
+  display: flex; align-items: baseline; gap: 12px;
+  padding: 9px 16px; border-bottom: 1px solid var(--console-line);
+  background: var(--console-2);
+}
+.vh-path { font-family: var(--mono); font-size: 12px; color: var(--console-text); }
+.vh-meta { margin-left: auto; font-family: var(--mono); font-size: 11px; color: var(--console-mute); }
+
+.code { flex: 1; display: flex; overflow: auto; }
+.code .gutter, .code .src {
+  margin: 0; padding: 10px 0 26px;
+  font-family: var(--mono); font-size: 12.5px; line-height: 1.62;
+}
+.code .gutter {
+  flex: none; padding-right: 12px; text-align: right;
+  color: #4C4C58; background: #0C0C10;
+  border-right: 1px solid var(--console-line);
+  position: sticky; left: 0;
+  user-select: none;
+}
+.code .gutter span { display: block; padding: 0 12px 0 10px; }
+.code .src { padding-left: 14px; padding-right: 22px; color: #CFCFE0; }
+.code .ln { display: block; white-space: pre; }
+
+/* ── diff ────────────────────────────────────────────────────────────── */
+
+.diff { flex: 1; overflow: auto; background: #101015; }
+.dstat {
+  position: sticky; top: 0; z-index: 1;
+  display: flex; gap: 12px; align-items: center;
+  padding: 7px 16px; background: var(--console-2);
+  border-bottom: 1px solid var(--console-line);
+  font-family: var(--mono); font-size: 11.5px; color: var(--console-mute);
+}
+.dbody { padding: 6px 0 26px; }
+.dl {
+  display: block; padding: 0 16px; white-space: pre;
+  font-family: var(--mono); font-size: 12.5px; line-height: 1.6; color: #B9B9C6;
+}
+.dl.d-add { background: rgba(23,166,115,.13); color: #9BEBC6; }
+.dl.d-del { background: rgba(220,75,75,.13); color: #FFB4B4; }
+.dl.d-hunk { color: var(--cyan); background: rgba(6,182,212,.07); }
+.dl.d-meta { color: var(--console-mute); }
+.dstat .d-add { background: none; color: #9BEBC6; }
+.dstat .d-del { background: none; color: #FFB4B4; }
+
+/* ── commits ─────────────────────────────────────────────────────────── */
+
+.log { flex: 1; overflow-y: auto; padding: 12px 0 22px; background: #101015; }
+.commit {
+  display: grid; grid-template-columns: 76px 1fr auto; gap: 12px; align-items: baseline;
+  padding: 7px 18px; border-bottom: 1px solid rgba(255,255,255,.04);
+  font-size: 13px; color: var(--console-text);
+}
+.commit:hover { background: rgba(255,255,255,.03); }
+.c-sha { font-family: var(--mono); font-size: 11.5px; color: var(--cyan); }
+.c-subject { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.c-meta { font-family: var(--mono); font-size: 11px; color: var(--console-mute); }
 
 /* ── status ─────────────────────────────────────────────────────────── */
 
@@ -415,9 +534,14 @@ svg { width: 1em; height: 1em; fill: none; stroke: currentColor;
 /* ── scrollbars ─────────────────────────────────────────────────────── */
 
 .stream::-webkit-scrollbar, .side-scroll::-webkit-scrollbar,
-.review::-webkit-scrollbar, .files::-webkit-scrollbar { width: 10px; }
+.review::-webkit-scrollbar, .files::-webkit-scrollbar,
+.tree::-webkit-scrollbar, .viewer::-webkit-scrollbar,
+.code::-webkit-scrollbar, .diff::-webkit-scrollbar,
+.log::-webkit-scrollbar { width: 10px; }
 .stream::-webkit-scrollbar-thumb, .review::-webkit-scrollbar-thumb,
-.files::-webkit-scrollbar-thumb {
+.files::-webkit-scrollbar-thumb, .tree::-webkit-scrollbar-thumb,
+.viewer::-webkit-scrollbar-thumb, .code::-webkit-scrollbar-thumb,
+.diff::-webkit-scrollbar-thumb, .log::-webkit-scrollbar-thumb {
   background: rgba(255,255,255,.11); border-radius: 6px;
   border: 3px solid transparent; background-clip: content-box;
 }

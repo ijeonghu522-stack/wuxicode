@@ -32,8 +32,19 @@ from pathlib import Path
 
 from wx import __version__
 from wx import require_core as wx_require_core
+from wx.gui.pool import SessionPool
 from wx.gui.server import UI_DIR, serve
-from wx.gui.session import Session
+
+#: pywebview's backend per platform. Windows uses EdgeChromium (WebView2) over
+#: pythonnet; the others are the GTK and Cocoa bindings. Only the Windows path
+#: is exercised here -- it is the platform this project ships for -- so the
+#: others are named rather than claimed. An unresolvable one falls through to
+#: pywebview's own auto-detection with a warning.
+GUI_BACKENDS = {
+    "win32": "edgechromium",
+    "linux": "gtk",
+    "darwin": "cocoa",
+}
 
 WINDOW_TITLE = "WUXICODE"
 WIDTH, HEIGHT = 1280, 800
@@ -112,7 +123,10 @@ def main(argv: list[str] | None = None) -> int:
         try:
             import webview  # noqa: F401, PLC0415
 
-            print("  web view    : pywebview OK")
+            backend = GUI_BACKENDS.get(sys.platform, "autodetect")
+            print(f"  web view    : pywebview OK  backend={backend}")
+            if sys.platform not in GUI_BACKENDS:
+                print(f"                 (untested on {sys.platform})")
         except ImportError:
             print("  web view    : MISSING (pip install pywebview)")
             return 1
@@ -131,12 +145,15 @@ def main(argv: list[str] | None = None) -> int:
         print("the CLI (wuxicode) works without it", file=sys.stderr)
         return 3
 
-    session = Session(workspace=ws)
+    pool = SessionPool(workspace=ws)
     if args.debug:
         os.environ["WX_DEBUG"] = "1"
-    server = serve(session, args.port)
+    server = serve(pool, args.port)
     host, port = server.server_address[:2]
     url = f"http://{host}:{port}/"
+    backend = GUI_BACKENDS.get(sys.platform, "")
+    if not backend:
+        _log(f"[gui] no known backend for {sys.platform}; using pywebview autodetect")
 
     if args.debug:
         print(f"port   : {port}", file=sys.stderr)
@@ -166,12 +183,14 @@ def main(argv: list[str] | None = None) -> int:
     if args.browser:
         print(f"WUXICODE GUI  {url}")
         print(f"  workspace: {ws}")
+        if backend:
+            print(f"  backend  : {backend}")
         try:
             server.serve_forever()
         except KeyboardInterrupt:
             pass
         finally:
-            session.shutdown()
+            pool.shutdown()
             server.shutdown()
         return 0
 
@@ -180,7 +199,10 @@ def main(argv: list[str] | None = None) -> int:
     thread.start()
 
     def on_closing() -> None:
-        session.shutdown()
+        # Every agent, not just the one in front: a turn left running would
+        # keep tool subprocesses alive after the window is gone, which on
+        # Windows means orphaned processes holding file handles nobody can see.
+        pool.shutdown()
         server.shutdown()
 
     if os.environ.get("WX_DEBUG") == "1":
@@ -203,7 +225,7 @@ def main(argv: list[str] | None = None) -> int:
 
         _log(f"[gui] create_window failed: {type(exc).__name__}: {exc}")
         _log(traceback.format_exc())
-        session.shutdown()
+        pool.shutdown()
         server.shutdown()
         return 1
 
@@ -240,11 +262,11 @@ def main(argv: list[str] | None = None) -> int:
         _log(f"[gui] webview.start failed: {detail}")
         _log(traceback.format_exc())
         _log(f"[gui] the UI is still reachable at {url}")
-        session.shutdown()
+        pool.shutdown()
         server.shutdown()
         return 1
     finally:
-        session.shutdown()
+        pool.shutdown()
         server.shutdown()
     _log("[gui] closed cleanly")
     return 0

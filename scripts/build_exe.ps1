@@ -353,9 +353,18 @@ if ($Clean) {
     # fails with WinError 5, and the build stops for a reason that has nothing
     # to do with the source. Cleared first, and the wait is not optional --
     # the child exits a moment after the parent.
+    # BOTH names, not just this build's. Building the CLI after a GUI run
+    # used to die here: the leftover process is WUXICODE-GUI.exe, $Name is
+    # WUXICODE, and dist\ could not be removed because a window nobody was
+    # looking at still had it open.
     Get-Process -Name $Name -ErrorAction SilentlyContinue | Stop-Process -Force
+    Get-Process -Name "$Name-GUI" -ErrorAction SilentlyContinue | Stop-Process -Force
+    Get-Process -Name "WUXICODE-GUI" -ErrorAction SilentlyContinue | Stop-Process -Force
+    # The WebView2 children are spawned from the unpacked _MEIxxxx directory,
+    # so their Path is under TEMP, not under $Root -- the old StartsWith($Root)
+    # filter matched nothing and they survived.
     Get-Process -Name "msedgewebview2" -ErrorAction SilentlyContinue |
-        Where-Object { $_.Path -and $_.Path.StartsWith($Root) } |
+        Where-Object { $_.Path -and ($_.Path.StartsWith($Root) -or $_.Path.StartsWith($env:TEMP)) } |
         Stop-Process -Force -ErrorAction SilentlyContinue
     Start-Sleep -Milliseconds 800
 
@@ -419,6 +428,14 @@ if ($Gui) {
     if ($alive) { Stop-Process -Id $probe.Id -Force -ErrorAction SilentlyContinue }
     if ($alive) { Ok "window process started and stayed up" }
     else { Warn "GUI exited immediately -- check WebView2 runtime" }
+
+    # The WebView2 children outlive the parent by a moment, and they hold
+    # dist\ and the unpacked _MEI tree open. The next -Clean then fails with
+    # "a process still has files open" for a window this script started itself.
+    Start-Sleep -Milliseconds 800
+    Get-Process -Name "msedgewebview2" -ErrorAction SilentlyContinue |
+        Where-Object { $_.Path -and ($_.Path.StartsWith($Root) -or $_.Path.StartsWith($env:TEMP)) } |
+        Stop-Process -Force -ErrorAction SilentlyContinue
 } else {
     # A onefile bundle unpacks to %TEMP%\_MEIxxxx on every launch, so a missing
     # runtime DLL only surfaces at execution time. Running --version proves the

@@ -1,17 +1,22 @@
-"""HTTP layer between the window and the agent.
+"""HTTP layer between the window and the agents.
 
-stdlib only. The whole surface is a static directory and two JSON endpoints
-plus one SSE stream, and a dependency that exists to route those would be a
-dependency PyInstaller has to freeze into a 21 MB binary for no benefit.
+stdlib only. The whole surface is a static directory, a handful of JSON
+endpoints and one SSE stream per turn, and a dependency that exists to route
+those would be a dependency PyInstaller has to freeze into a 28MB binary for no
+benefit.
 
-SSE rather than WebSocket: the traffic is one-directional (the browser sends
-a prompt, the server streams events back), the payload is text, and EventSource
-reconnects on its own. A socket would add a framing protocol to solve a
-problem that a newline-delimited text format does not already solve.
+SSE rather than WebSocket: the traffic is one-directional (the browser sends a
+prompt, the server streams events back), the payload is text, and a
+newline-delimited frame is something HTTP/1.1 already transports. A socket
+would add a framing protocol to solve a problem that does not exist here.
 
-Bound to 127.0.0.1 on an ephemeral port. The window is the only client, and
-the port is discovered at runtime rather than fixed, so two copies of WUXICODE
-do not collide -- and nothing on the network can reach the agent.
+Every request names the tab it belongs to, because each tab has its own agent
+-- see gui/pool.py for why sharing one was not an option.
+
+Bound to 127.0.0.1 on an ephemeral port. The window is the only client, and the
+port is discovered at runtime rather than fixed, so two copies of WUXICODE do
+not collide -- and nothing on the network can reach an agent that runs shell
+tools.
 """
 
 from __future__ import annotations
@@ -24,14 +29,16 @@ from dataclasses import asdict, is_dataclass
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
+from urllib.parse import parse_qs, urlparse
 
-from wx.gui.session import Session
+from wx.gui import pool as poolmod
+from wx.gui.pool import SessionPool
 
 UI_DIR = Path(__file__).resolve().parent / "ui"
 
-#: Refuse to buffer a turn that never ends. The stream is the response body,
-#: so a hung provider holds a thread; the cap is what stops that being forever.
-SSE_KEEPALIVE_S = 15.0
+#: Longest prompt accepted. A prompt is a request, not an upload, and a body
+#: this size means something is looping.
+MAX_BODY = 1 << 20
 
 
 def _free_port() -> int:
@@ -53,11 +60,11 @@ class Handler(BaseHTTPRequestHandler):
     # -- plumbing ---------------------------------------------------------
 
     def log_message(self, fmt: str, *args: Any) -> None:
-        """Quiet by default.
+        """Quiet unless WX_DEBUG.
 
         A windowed build has no console to print to, so the default handler
-        writing to stderr is at best invisible and at worst a crash. WX_DEBUG
-        turns it back on for the case where it is wanted.
+        writing to stderr is at best invisible and at worst a crash on a closed
+        handle.
         """
         import os
 
@@ -69,7 +76,7 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header("Content-Type", ctype)
         self.send_header("Content-Length", str(len(body)))
         # A local server that a page could embed is a local server that other
-        # pages can drive. The agent runs tools; keep it same-origin only.
+        # pages can drive. The agent runs shell tools; keep it same-origin.
         self.send_header("X-Content-Type-Options", "nosniff")
         self.send_header("Cache-Control", "no-store")
         for k, v in (extra or {}).items():
@@ -84,8 +91,7 @@ class Handler(BaseHTTPRequestHandler):
     def _json(self, obj: Any, code: int = 200) -> None:
         # asdict is applied defensively rather than at the call sites: the
         # endpoints return dataclasses, and forgetting to unwrap one produced a
-        # RemoteDisconnected in the browser with nothing useful on the server
-        # side. Doing it here means a new dataclass endpoint cannot hit it.
+        # RemoteDisconnected in the browser with nothing useful server-side.
         if is_dataclass(obj) and not isinstance(obj, type):
             obj = asdict(obj)
         self._send(
@@ -94,30 +100,90 @@ class Handler(BaseHTTPRequestHandler):
             "application/json; charset=utf-8",
         )
 
+    def _query(self) -> tuple[str, dict[str, list[str]]]:
+        p = urlparse(self.path)
+        return p.path, parse_qs(p.query)
+
+    def _tab(self, q: dict[str, list[str]]) -> int:
+        """Which tab this request is for.
+
+        Defaults to 1. A missing tab is a client bug, not a reason to fail the
+        request: answering tab 1 is better than answering nothing.
+        """
+        raw = (q.get("tab") or ["1"])[0]
+        try:
+            return max(1, int(raw))
+        except (TypeError, ValueError):
+            return 1
+
+    def _body(self) -> dict[str, Any]:
+        try:
+            length = int(self.headers.get("Content-Length") or 0)
+        except ValueError:
+            return {}
+        if length <= 0:
+            return {}
+        if length > MAX_BODY:
+            return {}
+        try:
+            data = json.loads(self.rfile.read(length) or b"{}")
+        except (json.JSONDecodeError, ValueError):
+            return {}
+        return data if isinstance(data, dict) else {}
+
     # -- routes -----------------------------------------------------------
 
     def do_GET(self) -> None:  # noqa: N802  (stdlib naming)
-        path = self.path.split("?", 1)[0]
+        path, q = self._query()
+        p = self.server.pool
+
         if path == "/api/state":
-            return self._json(self.server.session.state())
+            return self._json(p.get(self._tab(q)).state())
         if path == "/api/files":
-            return self._json({"files": self.server.session.files()})
+            return self._json({"files": p.get(self._tab(q)).files()})
+        if path == "/api/file":
+            return self._json(poolmod.read_file(p.workspace, (q.get("path") or [""])[0]))
+        if path == "/api/git/status":
+            return self._json(poolmod.git_status(p.workspace))
+        if path == "/api/git/diff":
+            return self._json(poolmod.git_diff(
+                p.workspace,
+                (q.get("path") or [None])[0],
+                staged=(q.get("staged") or ["0"])[0] in ("1", "true", "True"),
+            ))
+        if path == "/api/git/log":
+            return self._json(poolmod.git_log(p.workspace))
         return self._static(path)
 
     def do_POST(self) -> None:  # noqa: N802
-        path = self.path.split("?", 1)[0]
+        path, q = self._query()
+        # Read the body ONCE, here, for every POST. A route that ignores it
+        # leaves those bytes in the socket, and on a keep-alive connection the
+        # next request is then parsed starting at the tail of the previous body
+        # -- which surfaces to the caller as an aborted connection at random,
+        # minutes later, on an unrelated request. Routes read it from this
+        # value instead of calling _body() again.
+        payload = self._body()
         if path == "/api/chat":
-            return self._chat()
+            return self._chat(q, payload)
         if path == "/api/abort":
-            self.server.session.abort()
-            return self._json({"ok": True})
+            # Abort stops the TURN and keeps the session: stopping a runaway
+            # tool run must not cost the tab its conversation history. Closing
+            # the tab is the other endpoint's job.
+            session = self.server.pool.peek(self._tab(q))
+            was_busy = bool(session and session.busy())
+            if session is not None:
+                session.abort()
+            return self._json({"ok": True, "aborted": was_busy})
+        if path == "/api/tab/close":
+            return self._json({"ok": True, "closed": self.server.pool.close(self._tab(q))})
         return self._json({"error": "not found"}, 404)
 
     def _static(self, path: str) -> None:
         rel = path.lstrip("/") or "index.html"
-        target = (UI_DIR / rel).resolve()
         try:
-            target.relative_to(UI_DIR)
+            target = (UI_DIR / rel).resolve()
+            target.relative_to(UI_DIR.resolve())
         except ValueError:
             return self._json({"error": "forbidden"}, 403)
         if not target.is_file():
@@ -129,20 +195,15 @@ class Handler(BaseHTTPRequestHandler):
 
     # -- streaming --------------------------------------------------------
 
-    def _chat(self) -> None:
-        length = int(self.headers.get("Content-Length") or 0)
-        try:
-            payload = json.loads(self.rfile.read(length) or b"{}")
-        except json.JSONDecodeError:
-            return self._json({"error": "bad json"}, 400)
-
+    def _chat(self, q: dict[str, list[str]], payload: dict[str, Any]) -> None:
         prompt = str(payload.get("prompt") or "")
         if not prompt.strip():
             return self._json({"error": "empty prompt"}, 400)
 
-        session = self.server.session
+        tab = self._tab(q)
+        session = self.server.pool.get(tab)
         if session.busy():
-            return self._json({"error": "a turn is already running"}, 409)
+            return self._json({"error": "a turn is already running on this tab"}, 409)
 
         self.send_response(200)
         self.send_header("Content-Type", "text/event-stream; charset=utf-8")
@@ -152,14 +213,10 @@ class Handler(BaseHTTPRequestHandler):
 
         queue: list[dict[str, Any]] = []
 
-        # The session is shared with every other request, so swapping its emit
-        # target for the duration of this stream and restoring it afterwards is
-        # only safe because concurrent turns are refused above.
-        previous_emit = session.emit
-
         def emit(ev: dict[str, Any]) -> None:
             queue.append(ev)
 
+        previous_emit = session.emit
         session.emit = emit
 
         try:
@@ -170,10 +227,9 @@ class Handler(BaseHTTPRequestHandler):
 
             # Drain until the turn reports itself finished. `finished` is an
             # EVENT and not `not session.busy()`: a worker thread that has been
-            # created but has not started running is not yet busy(), so the
-            # poll closed the stream immediately and the client saw only the
-            # terminator. The worker sets it on its last act, which is the only
-            # ordering that cannot race.
+            # created but has not started running is not yet busy(), so the poll
+            # closed the stream immediately and the client saw only the
+            # terminator.
             finished = threading.Event()
             inner = emit
 
@@ -201,8 +257,8 @@ class Handler(BaseHTTPRequestHandler):
     def _write(self, ev: dict[str, Any]) -> None:
         data = json.dumps(ev, ensure_ascii=False)
         # A payload containing a newline would otherwise terminate the SSE
-        # frame early. json.dumps escapes them, but the split is cheap
-        # insurance and makes the invariant local rather than assumed.
+        # frame early. json.dumps escapes them, but the split is cheap insurance
+        # and makes the invariant local rather than assumed.
         for line in data.split("\n"):
             self.wfile.write(f"data: {line}\n\n".encode("utf-8"))
         self.wfile.flush()
@@ -212,15 +268,15 @@ class GuiServer(ThreadingHTTPServer):
     daemon_threads = True
     allow_reuse_address = True
 
-    def __init__(self, addr: tuple[str, int], session: Session) -> None:
+    def __init__(self, addr: tuple[str, int], pool: SessionPool) -> None:
         super().__init__(addr, Handler)
-        self.session = session
+        self.pool = pool
 
 
-def serve(session: Session, port: int | None = None) -> GuiServer:
+def serve(pool: SessionPool, port: int | None = None) -> GuiServer:
     """Bind and return a server already listening. Caller owns shutdown()."""
     port = port or _free_port()
-    return GuiServer(("127.0.0.1", port), session)
+    return GuiServer(("127.0.0.1", port), pool)
 
 
 def main(workspace: str | None = None, port: int | None = None) -> int:
@@ -229,8 +285,8 @@ def main(workspace: str | None = None, port: int | None = None) -> int:
     import os
 
     ws = Path(workspace or os.getcwd())
-    session = Session(workspace=ws)
-    srv = serve(session, port)
+    p = SessionPool(workspace=ws)
+    srv = serve(p, port)
     host, bound = srv.server_address[:2]
     print(f"WUXICODE GUI  http://{host}:{bound}/")
     print(f"  workspace: {ws}")
@@ -239,7 +295,7 @@ def main(workspace: str | None = None, port: int | None = None) -> int:
     except KeyboardInterrupt:
         print("\nbye")
     finally:
-        session.shutdown()
+        p.shutdown()
         srv.shutdown()
     return 0
 
